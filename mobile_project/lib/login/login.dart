@@ -164,63 +164,6 @@ class _loginState extends State<login> {
                           ),
                         ),
                         const SizedBox(height: 100),
-                        const Text(
-                          "Or Sign in with",
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 25),
-                        Center(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(
-                                width: 65,
-                                height: 70,
-                                child: TextButton(
-                                  onPressed: () {},
-                                  child: Image.network(
-                                    "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/2023_Facebook_icon.svg/1024px-2023_Facebook_icon.svg.png",
-                                  ),
-                                ),
-                              ),
-                              SizedBox(
-                                width: 65,
-                                height: 70,
-                                child: TextButton(
-                                  onPressed: () {},
-                                  child: Image.network(
-                                    "https://cdn-icons-png.freepik.com/256/5969/5969020.png?semt=ais_hybrid",
-                                  ),
-                                ),
-                              ),
-                              SizedBox(
-                                width: 65,
-                                height: 70,
-                                child: TextButton(
-                                  onPressed: () {},
-                                  child: Image.network(
-                                    "https://www.citypng.com/public/uploads/preview/round-circle-g-plus-google-icon-701751695133225k60gamywzo.png",
-                                  ),
-                                ),
-                              ),
-                              SizedBox(
-                                width: 65,
-                                height: 70,
-                                child: TextButton(
-                                  onPressed: () {},
-                                  child: Image.network(
-                                    "https://cdn-icons-png.flaticon.com/512/1384/1384063.png",
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 25),
                         Center(
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
