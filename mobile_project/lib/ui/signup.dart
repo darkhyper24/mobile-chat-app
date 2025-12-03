@@ -10,8 +10,10 @@ class SignupPage extends StatefulWidget {
 
 class _SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _authService = AuthService();
@@ -19,11 +21,14 @@ class _SignupPageState extends State<SignupPage> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  String? _selectedGender;
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -39,18 +44,14 @@ class _SignupPageState extends State<SignupPage> {
     });
 
     try {
-      final nameParts = _nameController.text.trim().split(' ');
-      final firstname = nameParts.isNotEmpty ? nameParts.first : '';
-      final lastname = nameParts.length > 1
-          ? nameParts.sublist(1).join(' ')
-          : '';
-
       await _authService.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
-        firstname: firstname,
-        lastname: lastname,
+        firstname: _firstNameController.text.trim(),
+        lastname: _lastNameController.text.trim(),
         username: _emailController.text.split('@').first,
+        phoneNumber: _phoneController.text.trim(),
+        gender: _selectedGender,
       );
 
       if (mounted) {
@@ -131,9 +132,9 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 32),
 
-                  // Full Name Field
+                  // First Name Field
                   const Text(
-                    'Full Name',
+                    'First Name',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -142,9 +143,9 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
-                    controller: _nameController,
+                    controller: _firstNameController,
                     decoration: InputDecoration(
-                      hintText: 'John Doe',
+                      hintText: 'John',
                       filled: true,
                       fillColor: const Color(0xFFF5F5F5),
                       border: OutlineInputBorder(
@@ -158,7 +159,41 @@ class _SignupPageState extends State<SignupPage> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your full name';
+                        return 'Please enter your first name';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Last Name Field
+                  const Text(
+                    'Last Name',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _lastNameController,
+                    decoration: InputDecoration(
+                      hintText: 'Doe',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F5F5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your last name';
                       }
                       return null;
                     },
@@ -197,6 +232,85 @@ class _SignupPageState extends State<SignupPage> {
                       }
                       if (!value.contains('@')) {
                         return 'Please enter a valid email';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Phone Number Field
+                  const Text(
+                    'Phone Number',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      hintText: '+1234567890',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F5F5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your phone number';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Gender Dropdown
+                  const Text(
+                    'Gender',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: _selectedGender,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFFF5F5F5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                    ),
+                    hint: const Text('Select your gender'),
+                    items: const [
+                      DropdownMenuItem(value: 'Male', child: Text('Male')),
+                      DropdownMenuItem(value: 'Female', child: Text('Female')),
+                      DropdownMenuItem(value: 'Other', child: Text('Other')),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedGender = value;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select your gender';
                       }
                       return null;
                     },

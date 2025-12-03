@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import 'signup/signup.dart';
-void main() {
+import 'ui/signup.dart';
+import 'database/db.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await DatabaseService().initialize();
   runApp(const MyApp());
 }
 
@@ -31,7 +35,12 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: signup(),
+      home: const SignupPage(),
+      routes: {
+        '/signup': (context) => const SignupPage(),
+        '/login': (context) => const SignupPage(), // TODO: Create LoginPage
+        '/home': (context) => const SignupPage(), // TODO: Create HomePage
+      },
     );
   }
 }
