@@ -26,7 +26,10 @@ class FriendsProvider extends ChangeNotifier {
   Future<void> loadFriends(String userId) async {
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
+    // Use post-frame callback to avoid notifyListeners during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
 
     try {
       _friends = await _friendService.getFriends(userId);
@@ -42,7 +45,10 @@ class FriendsProvider extends ChangeNotifier {
   Future<void> loadReceivedRequests(String userId) async {
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
+    // Use post-frame callback to avoid notifyListeners during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
 
     try {
       _receivedRequests = await _friendService.getReceivedFriendRequests(userId);
@@ -69,7 +75,10 @@ class FriendsProvider extends ChangeNotifier {
   Future<void> loadAllData(String userId) async {
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
+    // Use post-frame callback to avoid notifyListeners during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
 
     try {
       await Future.wait([

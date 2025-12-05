@@ -1,28 +1,53 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/message_service.dart';
+import '../services/location_service.dart';
 import '../models/massages.dart';
 import '../models/users.dart' as models;
 
+/// Result of attempting to send a location
+enum LocationSendResultType {
+  success,
+  serviceDisabled,
+  permissionDenied,
+  permissionPermanentlyDenied,
+  error,
+}
+
+class LocationSendResult {
+  final LocationSendResultType type;
+  final String? errorMessage;
+
+  LocationSendResult._(this.type, [this.errorMessage]);
+
+  factory LocationSendResult.success() => LocationSendResult._(LocationSendResultType.success);
+  factory LocationSendResult.serviceDisabled() => LocationSendResult._(LocationSendResultType.serviceDisabled);
+  factory LocationSendResult.permissionDenied() => LocationSendResult._(LocationSendResultType.permissionDenied);
+  factory LocationSendResult.permissionPermanentlyDenied() => LocationSendResult._(LocationSendResultType.permissionPermanentlyDenied);
+  factory LocationSendResult.error(String message) => LocationSendResult._(LocationSendResultType.error, message);
+
+  bool get isSuccess => type == LocationSendResultType.success;
+}
+
 class ChatProvider extends ChangeNotifier {
   final MessageService _messageService = MessageService();
+  final LocationService _locationService = LocationService();
 
   List<Conversation> _conversations = [];
   List<Message> _currentMessages = [];
   models.User? _currentChatPartner;
   bool _isLoading = false;
   bool _isSending = false;
+  bool _isGettingLocation = false;
   String? _errorMessage;
   String? _currentUserId;
-  
-  // Callback for new messages (for scroll handling in UI)
-  Function(Message)? onNewMessageReceived;
 
   List<Conversation> get conversations => _conversations;
   List<Message> get currentMessages => _currentMessages;
   models.User? get currentChatPartner => _currentChatPartner;
   bool get isLoading => _isLoading;
   bool get isSending => _isSending;
+  bool get isGettingLocation => _isGettingLocation;
   String? get errorMessage => _errorMessage;
 
   /// Load all conversations for the home page
@@ -66,6 +91,9 @@ class ChatProvider extends ChangeNotifier {
   }
 
   /// Open a chat with a specific user
+  /// Following the Supabase Flutter tutorial pattern:
+  /// 1. Load initial messages
+  /// 2. Subscribe to real-time updates
   Future<void> openChat({
     required String userId,
     required models.User partner,
@@ -78,7 +106,7 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Load initial messages
+      // 1. Load initial messages
       _currentMessages = await _messageService.getMessages(
         userId: userId,
         partnerId: partner.userId,
@@ -87,12 +115,12 @@ class ChatProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
-      // Subscribe to real-time messages for this conversation
+      // 2. Subscribe to real-time messages for this conversation
       _messageService.subscribeToConversation(
         userId: userId,
         partnerId: partner.userId,
         onNewMessage: (message) {
-          _handleNewMessage(message, userId);
+          _handleNewMessage(message);
         },
       );
     } catch (e) {
@@ -103,16 +131,19 @@ class ChatProvider extends ChangeNotifier {
   }
 
   /// Handle incoming real-time message
-  void _handleNewMessage(Message message, String userId) {
-    // Check if message already exists (might have been added when sent)
+  void _handleNewMessage(Message message) {
+    print('Handling new message: ${message.messageId}');
+    
+    // Check if message already exists (to avoid duplicates)
     final exists = _currentMessages.any((m) => m.messageId == message.messageId);
     
     if (!exists) {
-      _currentMessages = [..._currentMessages, message];
+      // Create a new list with the new message appended
+      _currentMessages = List<Message>.from(_currentMessages)..add(message);
       notifyListeners();
-      
-      // Notify UI about new message (for scroll handling)
-      onNewMessageReceived?.call(message);
+      print('Message added to list. Total messages: ${_currentMessages.length}');
+    } else {
+      print('Message already exists, skipping');
     }
   }
 
@@ -128,6 +159,7 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Send message and get the response
       final message = await _messageService.sendMessage(
         senderId: senderId,
         receiverId: receiverId,
@@ -135,19 +167,17 @@ class ChatProvider extends ChangeNotifier {
       );
 
       if (message != null) {
-        // Add message to current list immediately for responsiveness
-        // The realtime subscription will handle deduplication
-        if (!_currentMessages.any((m) => m.messageId == message.messageId)) {
-          _currentMessages = [..._currentMessages, message];
+        // Add message to list immediately for responsive UI
+        // Real-time subscription might also add it, so we check for duplicates
+        final exists = _currentMessages.any((m) => m.messageId == message.messageId);
+        if (!exists) {
+          _currentMessages = List<Message>.from(_currentMessages)..add(message);
         }
-        _isSending = false;
-        notifyListeners();
-        return true;
       }
 
       _isSending = false;
       notifyListeners();
-      return false;
+      return true;
     } catch (e) {
       _errorMessage = e.toString();
       _isSending = false;
@@ -156,7 +186,83 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  /// Load more messages (pagination)
+  /// Send a location message
+  /// Returns a result indicating success, failure reason, or if settings need to be opened
+  Future<LocationSendResult> sendLocation({
+    required String senderId,
+    required String receiverId,
+  }) async {
+    _isGettingLocation = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Get current location (this handles permission requests internally)
+      final locationResult = await _locationService.getCurrentLocation();
+
+      _isGettingLocation = false;
+      _isSending = true;
+      notifyListeners();
+
+      // Send the location message
+      final message = await _messageService.sendLocationMessage(
+        senderId: senderId,
+        receiverId: receiverId,
+        latitude: locationResult.latitude,
+        longitude: locationResult.longitude,
+      );
+
+      if (message != null) {
+        // Add message to list immediately for responsive UI
+        final exists = _currentMessages.any((m) => m.messageId == message.messageId);
+        if (!exists) {
+          _currentMessages = List<Message>.from(_currentMessages)..add(message);
+        }
+      }
+
+      _isSending = false;
+      notifyListeners();
+      return LocationSendResult.success();
+    } on LocationServiceDisabledException {
+      _isGettingLocation = false;
+      _isSending = false;
+      notifyListeners();
+      return LocationSendResult.serviceDisabled();
+    } on LocationPermissionDeniedException {
+      _isGettingLocation = false;
+      _isSending = false;
+      notifyListeners();
+      return LocationSendResult.permissionDenied();
+    } on LocationPermissionPermanentlyDeniedException {
+      _isGettingLocation = false;
+      _isSending = false;
+      notifyListeners();
+      return LocationSendResult.permissionPermanentlyDenied();
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isGettingLocation = false;
+      _isSending = false;
+      notifyListeners();
+      return LocationSendResult.error(e.toString());
+    }
+  }
+
+  /// Open location in Google Maps
+  Future<bool> openLocationInMaps(double latitude, double longitude) async {
+    return await _locationService.openInGoogleMaps(latitude, longitude);
+  }
+
+  /// Open device location settings
+  Future<bool> openLocationSettings() async {
+    return await _locationService.openLocationSettings();
+  }
+
+  /// Open app settings
+  Future<bool> openAppSettings() async {
+    return await _locationService.openAppSettings();
+  }
+
+  /// Load more messages (pagination) - for loading older messages
   Future<void> loadMoreMessages({
     required String userId,
     required String partnerId,
@@ -192,10 +298,11 @@ class ChatProvider extends ChangeNotifier {
 
   /// Close the current chat
   void closeChat() {
+    // Unsubscribe from conversation real-time updates
+    _messageService.unsubscribeFromConversation();
+    
     _currentChatPartner = null;
     _currentMessages = [];
-    onNewMessageReceived = null;
-    _messageService.unsubscribeFromConversation();
     
     // Only notify if we're not disposing
     if (_currentUserId != null) {

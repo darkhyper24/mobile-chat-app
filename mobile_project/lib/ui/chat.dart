@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import '../models/users.dart';
 import '../models/massages.dart';
+import '../services/location_service.dart';
 
 class ChatPage extends StatefulWidget {
   final User partner;
@@ -19,18 +20,14 @@ class _ChatPageState extends State<ChatPage> {
   final ScrollController _scrollController = ScrollController();
   final FocusNode _messageFocusNode = FocusNode();
   late final ChatProvider _chatProvider;
-  bool _isInitialized = false;
   bool _shouldAutoScroll = true;
+  int _previousMessageCount = 0;
 
   @override
   void initState() {
     super.initState();
     _chatProvider = context.read<ChatProvider>();
     _scrollController.addListener(_onScroll);
-    
-    // Set up callback for new messages
-    _chatProvider.onNewMessageReceived = _onNewMessageReceived;
-    
     _loadMessages();
   }
 
@@ -41,16 +38,14 @@ class _ChatPageState extends State<ChatPage> {
         userId: userId,
         partner: widget.partner,
       );
-      
-      // Scroll to bottom after messages load
+      // Scroll to bottom after initial messages load
       _scrollToBottom(animate: false);
-      _isInitialized = true;
     }
   }
 
   void _onScroll() {
     // Load more messages when scrolling to top
-    if (_scrollController.position.pixels <= 50) {
+    if (_scrollController.hasClients && _scrollController.position.pixels <= 50) {
       final userId = context.read<AuthProvider>().currentUser?.userId;
       if (userId != null) {
         _chatProvider.loadMoreMessages(
@@ -61,15 +56,10 @@ class _ChatPageState extends State<ChatPage> {
     }
     
     // Check if user is near bottom to determine auto-scroll behavior
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    final currentScroll = _scrollController.position.pixels;
-    _shouldAutoScroll = (maxScroll - currentScroll) < 100;
-  }
-
-  void _onNewMessageReceived(Message message) {
-    // Auto-scroll to bottom when new message arrives (if user is near bottom)
-    if (_shouldAutoScroll) {
-      _scrollToBottom(animate: true);
+    if (_scrollController.hasClients) {
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      final currentScroll = _scrollController.position.pixels;
+      _shouldAutoScroll = (maxScroll - currentScroll) < 100;
     }
   }
 
@@ -78,7 +68,6 @@ class _ChatPageState extends State<ChatPage> {
     _messageController.dispose();
     _scrollController.dispose();
     _messageFocusNode.dispose();
-    _chatProvider.onNewMessageReceived = null;
     _chatProvider.closeChat();
     super.dispose();
   }
@@ -107,18 +96,99 @@ class _ChatPageState extends State<ChatPage> {
     final userId = context.read<AuthProvider>().currentUser?.userId;
     if (userId == null) return;
 
+    // Clear the text field immediately for better UX
     _messageController.clear();
+    // Ensure we scroll to bottom when our message appears
     _shouldAutoScroll = true;
     
-    final success = await _chatProvider.sendMessage(
+    // Send the message - the stream subscription will handle UI update
+    await _chatProvider.sendMessage(
       senderId: userId,
       receiverId: widget.partner.userId,
       text: text,
     );
+  }
 
-    if (success) {
-      _scrollToBottom(animate: true);
+  Future<void> _sendLocation() async {
+    final userId = context.read<AuthProvider>().currentUser?.userId;
+    if (userId == null) return;
+
+    // Ensure we scroll to bottom when our message appears
+    _shouldAutoScroll = true;
+
+    final result = await _chatProvider.sendLocation(
+      senderId: userId,
+      receiverId: widget.partner.userId,
+    );
+
+    if (!mounted) return;
+
+    switch (result.type) {
+      case LocationSendResultType.success:
+        // Location sent successfully - nothing to do, UI already updated
+        break;
+      case LocationSendResultType.serviceDisabled:
+        _showLocationErrorDialog(
+          title: 'Location Services Disabled',
+          message: 'Please enable location services in your device settings to share your location.',
+          showSettingsButton: true,
+          onSettings: () => _chatProvider.openLocationSettings(),
+        );
+        break;
+      case LocationSendResultType.permissionDenied:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Location permission is required to share your location.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        break;
+      case LocationSendResultType.permissionPermanentlyDenied:
+        _showLocationErrorDialog(
+          title: 'Permission Required',
+          message: 'Location permission is permanently denied. Please enable it in your app settings.',
+          showSettingsButton: true,
+          onSettings: () => _chatProvider.openAppSettings(),
+        );
+        break;
+      case LocationSendResultType.error:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.errorMessage ?? 'Failed to get location'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        break;
     }
+  }
+
+  void _showLocationErrorDialog({
+    required String title,
+    required String message,
+    bool showSettingsButton = false,
+    VoidCallback? onSettings,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          if (showSettingsButton)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                onSettings?.call();
+              },
+              child: const Text('Open Settings'),
+            ),
+        ],
+      ),
+    );
   }
 
   String _getInitials(User user) {
@@ -289,10 +359,20 @@ class _ChatPageState extends State<ChatPage> {
                   );
                 }
 
+                final messageCount = chatProvider.currentMessages.length;
+                
+                // Auto-scroll when new messages arrive (if user is near bottom)
+                if (messageCount > _previousMessageCount && _shouldAutoScroll) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _scrollToBottom(animate: true);
+                  });
+                }
+                _previousMessageCount = messageCount;
+
                 return ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: chatProvider.currentMessages.length,
+                  itemCount: messageCount,
                   itemBuilder: (context, index) {
                     final message = chatProvider.currentMessages[index];
                     final isMe = message.senderId == currentUserId;
@@ -339,6 +419,31 @@ class _ChatPageState extends State<ChatPage> {
             ),
             child: Row(
               children: [
+                // Location button
+                Consumer<ChatProvider>(
+                  builder: (context, chatProvider, _) {
+                    return IconButton(
+                      onPressed: chatProvider.isGettingLocation || chatProvider.isSending
+                          ? null
+                          : _sendLocation,
+                      icon: chatProvider.isGettingLocation
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6750A4)),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.location_on,
+                              color: Color(0xFF6750A4),
+                              size: 24,
+                            ),
+                      tooltip: 'Share location',
+                    );
+                  },
+                ),
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
@@ -456,6 +561,8 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLocationMessage = message.isLocation;
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -485,13 +592,19 @@ class _MessageBubble extends StatelessWidget {
         child: Column(
           crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            Text(
-              message.message ?? '',
-              style: TextStyle(
-                color: isMe ? Colors.white : Colors.black87,
-                fontSize: 15,
+            if (isLocationMessage) ...[
+              // Location message UI
+              _buildLocationContent(context),
+            ] else ...[
+              // Regular text message
+              Text(
+                message.message ?? '',
+                style: TextStyle(
+                  color: isMe ? Colors.white : Colors.black87,
+                  fontSize: 15,
+                ),
               ),
-            ),
+            ],
             const SizedBox(height: 4),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -516,6 +629,87 @@ class _MessageBubble extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildLocationContent(BuildContext context) {
+    return Column(
+      crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        // Location icon and text
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.location_on,
+              color: isMe ? Colors.white : const Color(0xFF6750A4),
+              size: 20,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Location shared',
+              style: TextStyle(
+                color: isMe ? Colors.white : Colors.black87,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // Open in Maps button
+        InkWell(
+          onTap: () async {
+            final chatProvider = context.read<ChatProvider>();
+            final success = await chatProvider.openLocationInMaps(
+              message.latitude!,
+              message.longitude!,
+            );
+            if (!success && context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Could not open Google Maps'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isMe 
+                  ? Colors.white.withOpacity(0.2) 
+                  : const Color(0xFF6750A4).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isMe 
+                    ? Colors.white.withOpacity(0.3) 
+                    : const Color(0xFF6750A4).withOpacity(0.3),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.map_outlined,
+                  color: isMe ? Colors.white : const Color(0xFF6750A4),
+                  size: 18,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Open in Google Maps',
+                  style: TextStyle(
+                    color: isMe ? Colors.white : const Color(0xFF6750A4),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -28,11 +28,6 @@ class MessageService {
   RealtimeChannel? _conversationChannel;
   RealtimeChannel? _allMessagesChannel;
 
-  // Stream controllers for real-time updates
-  final _newMessageController = StreamController<Message>.broadcast();
-
-  Stream<Message> get newMessageStream => _newMessageController.stream;
-
   /// Get all conversations for a user (derived from messages)
   Future<List<Conversation>> getConversations(String userId) async {
     try {
@@ -109,7 +104,7 @@ class MessageService {
     }
   }
 
-  /// Get messages between two users
+  /// Get messages between two users (one-time fetch)
   Future<List<Message>> getMessages({
     required String userId,
     required String partnerId,
@@ -130,21 +125,19 @@ class MessageService {
       }
 
       final response = await query
-          .order('created_at', ascending: false)
+          .order('created_at', ascending: true)
           .limit(limit);
 
       return (response as List)
           .map((json) => Message.fromJson(json))
-          .toList()
-          .reversed
-          .toList(); // Reverse to get oldest first for display
+          .toList();
     } catch (e) {
       print('Error getting messages: $e');
       rethrow;
     }
   }
 
-  /// Send a text message
+  /// Send a text message and return the created message
   Future<Message?> sendMessage({
     required String senderId,
     required String receiverId,
@@ -157,7 +150,7 @@ class MessageService {
             'sender_id': senderId,
             'receiver_id': receiverId,
             'massage': text,
-            'group_id': null, // Explicitly set to null for direct messages
+            'group_id': null,
           })
           .select()
           .single();
@@ -169,16 +162,53 @@ class MessageService {
     }
   }
 
+  /// Send a location message and return the created message
+  Future<Message?> sendLocationMessage({
+    required String senderId,
+    required String receiverId,
+    required double latitude,
+    required double longitude,
+  }) async {
+    try {
+      final response = await _db.client
+          .from('massages')
+          .insert({
+            'sender_id': senderId,
+            'receiver_id': receiverId,
+            'massage': '📍 Location shared',
+            'latitude': latitude,
+            'longitude': longitude,
+            'group_id': null,
+          })
+          .select()
+          .single();
+
+      return Message.fromJson(response);
+    } catch (e) {
+      print('Error sending location message: $e');
+      rethrow;
+    }
+  }
+
   /// Subscribe to real-time messages for a specific conversation
+  /// Following the Supabase Flutter tutorial pattern
   void subscribeToConversation({
     required String userId,
     required String partnerId,
     required Function(Message) onNewMessage,
   }) {
-    // Unsubscribe from previous conversation channel if exists
-    _conversationChannel?.unsubscribe();
+    // Create a unique channel name for this conversation
+    final ids = [userId, partnerId]..sort();
+    final channelName = 'chat-${ids.join('-')}-${DateTime.now().millisecondsSinceEpoch}';
 
-    final channelName = 'chat:${_sortIds(userId, partnerId)}';
+    print('Subscribing to conversation channel: $channelName');
+
+    // Unsubscribe from previous conversation channel if exists
+    if (_conversationChannel != null) {
+      print('Removing previous conversation channel');
+      _db.client.removeChannel(_conversationChannel!);
+      _conversationChannel = null;
+    }
 
     _conversationChannel = _db.client
         .channel(channelName)
@@ -187,8 +217,11 @@ class MessageService {
           schema: 'public',
           table: 'massages',
           callback: (payload) {
+            print('=== REALTIME EVENT RECEIVED ===');
+            print('Payload: ${payload.newRecord}');
             try {
               final newMessage = Message.fromJson(payload.newRecord);
+              print('Parsed message - senderId: ${newMessage.senderId}, receiverId: ${newMessage.receiverId}');
 
               // Only process if this message is part of our conversation
               final isInConversation =
@@ -197,9 +230,11 @@ class MessageService {
                   (newMessage.senderId == partnerId &&
                       newMessage.receiverId == userId);
 
+              print('Is in conversation: $isInConversation, groupId: ${newMessage.groupId}');
+
               if (isInConversation && newMessage.groupId == null) {
+                print('Calling onNewMessage callback');
                 onNewMessage(newMessage);
-                _newMessageController.add(newMessage);
               }
             } catch (e) {
               print('Error processing realtime message: $e');
@@ -209,7 +244,7 @@ class MessageService {
         .subscribe((status, [error]) {
           print('Conversation subscription status: $status');
           if (error != null) {
-            print('Subscription error: $error');
+            print('Conversation subscription error: $error');
           }
         });
   }
@@ -219,16 +254,23 @@ class MessageService {
     required String userId,
     required Function(Message) onNewMessage,
   }) {
-    // Unsubscribe from previous channel if exists
-    _allMessagesChannel?.unsubscribe();
+    final channelName = 'all-messages-$userId-${DateTime.now().millisecondsSinceEpoch}';
+    
+    // Remove previous channel if exists
+    if (_allMessagesChannel != null) {
+      print('Removing previous all-messages channel');
+      _db.client.removeChannel(_allMessagesChannel!);
+      _allMessagesChannel = null;
+    }
 
     _allMessagesChannel = _db.client
-        .channel('all-messages:$userId')
+        .channel(channelName)
         .onPostgresChanges(
           event: PostgresChangeEvent.insert,
           schema: 'public',
           table: 'massages',
           callback: (payload) {
+            print('=== ALL MESSAGES EVENT RECEIVED ===');
             try {
               final newMessage = Message.fromJson(payload.newRecord);
 
@@ -253,22 +295,22 @@ class MessageService {
         });
   }
 
-  /// Helper to create consistent channel names
-  String _sortIds(String id1, String id2) {
-    final ids = [id1, id2]..sort();
-    return ids.join('-');
-  }
-
   /// Unsubscribe from conversation channel
   void unsubscribeFromConversation() {
-    _conversationChannel?.unsubscribe();
-    _conversationChannel = null;
+    if (_conversationChannel != null) {
+      print('Unsubscribing from conversation channel');
+      _db.client.removeChannel(_conversationChannel!);
+      _conversationChannel = null;
+    }
   }
 
   /// Unsubscribe from all messages channel
   void unsubscribeFromAllMessages() {
-    _allMessagesChannel?.unsubscribe();
-    _allMessagesChannel = null;
+    if (_allMessagesChannel != null) {
+      print('Unsubscribing from all messages channel');
+      _db.client.removeChannel(_allMessagesChannel!);
+      _allMessagesChannel = null;
+    }
   }
 
   /// Unsubscribe from all real-time updates
@@ -280,6 +322,5 @@ class MessageService {
   /// Clean up resources
   void dispose() {
     unsubscribe();
-    _newMessageController.close();
   }
 }
