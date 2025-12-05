@@ -30,7 +30,11 @@ class ChatProvider extends ChangeNotifier {
     _currentUserId = userId;
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
+    
+    // Use post-frame callback to avoid calling notifyListeners during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
 
     try {
       _conversations = await _messageService.getConversations(userId);
@@ -192,16 +196,21 @@ class ChatProvider extends ChangeNotifier {
     _currentMessages = [];
     onNewMessageReceived = null;
     _messageService.unsubscribeFromConversation();
-    notifyListeners();
     
-    // Re-subscribe to all messages for home page if we have a user ID
+    // Only notify if we're not disposing
     if (_currentUserId != null) {
+      // Re-subscribe to all messages for home page if we have a user ID
       _messageService.subscribeToAllMessages(
         userId: _currentUserId!,
         onNewMessage: (message) {
           _refreshConversations(_currentUserId!);
         },
       );
+      
+      // Use post-frame callback to safely notify listeners
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
     }
   }
 

@@ -23,14 +23,14 @@ class MessageService {
   MessageService._internal();
 
   final _db = DatabaseService();
-  
+
   // Realtime subscription channels
   RealtimeChannel? _conversationChannel;
   RealtimeChannel? _allMessagesChannel;
-  
+
   // Stream controllers for real-time updates
   final _newMessageController = StreamController<Message>.broadcast();
-  
+
   Stream<Message> get newMessageStream => _newMessageController.stream;
 
   /// Get all conversations for a user (derived from messages)
@@ -54,10 +54,10 @@ class MessageService {
 
       for (final msgJson in messages) {
         final message = Message.fromJson(msgJson);
-        final partnerId = message.senderId == userId 
-            ? message.receiverId 
+        final partnerId = message.senderId == userId
+            ? message.receiverId
             : message.senderId;
-        
+
         if (partnerId != null && !latestMessages.containsKey(partnerId)) {
           latestMessages[partnerId] = message;
           participantIds.add(partnerId);
@@ -85,18 +85,22 @@ class MessageService {
       for (final entry in latestMessages.entries) {
         final participant = usersMap[entry.key];
         if (participant != null) {
-          conversations.add(Conversation(
-            participant: participant,
-            lastMessage: entry.value,
-            unreadCount: 0,
-          ));
+          conversations.add(
+            Conversation(
+              participant: participant,
+              lastMessage: entry.value,
+              unreadCount: 0,
+            ),
+          );
         }
       }
 
       // Sort by last message time
-      conversations.sort((a, b) => 
-        (b.lastMessage.createdAt ?? DateTime.now())
-          .compareTo(a.lastMessage.createdAt ?? DateTime.now()));
+      conversations.sort(
+        (a, b) => (b.lastMessage.createdAt ?? DateTime.now()).compareTo(
+          a.lastMessage.createdAt ?? DateTime.now(),
+        ),
+      );
 
       return conversations;
     } catch (e) {
@@ -116,17 +120,19 @@ class MessageService {
       var query = _db.client
           .from('massages')
           .select()
-          .or('and(sender_id.eq.$userId,receiver_id.eq.$partnerId),and(sender_id.eq.$partnerId,receiver_id.eq.$userId)')
+          .or(
+            'and(sender_id.eq.$userId,receiver_id.eq.$partnerId),and(sender_id.eq.$partnerId,receiver_id.eq.$userId)',
+          )
           .isFilter('group_id', null);
-      
+
       if (before != null) {
         query = query.lt('created_at', before.toIso8601String());
       }
-      
+
       final response = await query
           .order('created_at', ascending: false)
           .limit(limit);
-      
+
       return (response as List)
           .map((json) => Message.fromJson(json))
           .toList()
@@ -145,11 +151,16 @@ class MessageService {
     required String text,
   }) async {
     try {
-      final response = await _db.client.from('massages').insert({
-        'sender_id': senderId,
-        'receiver_id': receiverId,
-        'message': text,
-      }).select().single();
+      final response = await _db.client
+          .from('massages')
+          .insert({
+            'sender_id': senderId,
+            'receiver_id': receiverId,
+            'massage': text,
+            'group_id': null, // Explicitly set to null for direct messages
+          })
+          .select()
+          .single();
 
       return Message.fromJson(response);
     } catch (e) {
@@ -168,7 +179,7 @@ class MessageService {
     _conversationChannel?.unsubscribe();
 
     final channelName = 'chat:${_sortIds(userId, partnerId)}';
-    
+
     _conversationChannel = _db.client
         .channel(channelName)
         .onPostgresChanges(
@@ -178,12 +189,14 @@ class MessageService {
           callback: (payload) {
             try {
               final newMessage = Message.fromJson(payload.newRecord);
-              
+
               // Only process if this message is part of our conversation
-              final isInConversation = 
-                  (newMessage.senderId == userId && newMessage.receiverId == partnerId) ||
-                  (newMessage.senderId == partnerId && newMessage.receiverId == userId);
-              
+              final isInConversation =
+                  (newMessage.senderId == userId &&
+                      newMessage.receiverId == partnerId) ||
+                  (newMessage.senderId == partnerId &&
+                      newMessage.receiverId == userId);
+
               if (isInConversation && newMessage.groupId == null) {
                 onNewMessage(newMessage);
                 _newMessageController.add(newMessage);
@@ -218,11 +231,12 @@ class MessageService {
           callback: (payload) {
             try {
               final newMessage = Message.fromJson(payload.newRecord);
-              
+
               // Only process if user is involved in this message
-              final isUserInvolved = 
-                  newMessage.senderId == userId || newMessage.receiverId == userId;
-              
+              final isUserInvolved =
+                  newMessage.senderId == userId ||
+                  newMessage.receiverId == userId;
+
               if (isUserInvolved && newMessage.groupId == null) {
                 onNewMessage(newMessage);
               }
