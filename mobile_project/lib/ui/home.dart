@@ -1,23 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-
-// TODO: Replace with actual chat model from backend
-class DummyChat {
-  final String name;
-  final String lastMessage;
-  final String time;
-  final int? unreadCount;
-  final String avatarInitials;
-
-  DummyChat({
-    required this.name,
-    required this.lastMessage,
-    required this.time,
-    this.unreadCount,
-    required this.avatarInitials,
-  });
-}
+import '../providers/chat_provider.dart';
+import '../providers/friends_provider.dart';
+import '../services/message_service.dart';
+import '../models/users.dart';
+import 'chat.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -33,65 +21,18 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
-  // TODO: Replace with actual chat data from backend
-  final List<DummyChat> _dummyChats = [
-    DummyChat(
-      name: 'Angel Curtis',
-      lastMessage: 'Please help me find a good monitor for...',
-      time: '02:11',
-      unreadCount: 2,
-      avatarInitials: 'AC',
-    ),
-    DummyChat(
-      name: 'Zaire Dorwart',
-      lastMessage: 'Oke pisah kang',
-      time: '02:11',
-      avatarInitials: 'ZD',
-    ),
-    DummyChat(
-      name: 'Kelas Malam',
-      lastMessage: 'Bima : No one can come today?',
-      time: '02:11',
-      unreadCount: 5,
-      avatarInitials: 'KM',
-    ),
-    DummyChat(
-      name: 'Jocelyn Gouse',
-      lastMessage: "You're now an admin",
-      time: '02:11',
-      avatarInitials: 'JG',
-    ),
-    DummyChat(
-      name: 'Jaylon Dias',
-      lastMessage: 'So Jess: 10k gallons, top up credit, b...',
-      time: '02:11',
-      avatarInitials: 'JD',
-    ),
-    DummyChat(
-      name: 'Chance Rhiel Madsen',
-      lastMessage: 'Thank you mate!',
-      time: '02:11',
-      unreadCount: 2,
-      avatarInitials: 'CM',
-    ),
-    DummyChat(
-      name: 'Livia Dias',
-      lastMessage: 'Great work everyone!',
-      time: '02:11',
-      avatarInitials: 'LD',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
 
-  List<DummyChat> get _filteredChats {
-    if (_searchQuery.isEmpty) {
-      return _dummyChats;
+  void _loadData() {
+    final userId = context.read<AuthProvider>().currentUser?.userId;
+    if (userId != null) {
+      context.read<ChatProvider>().loadConversations(userId);
+      context.read<FriendsProvider>().loadFriends(userId);
     }
-    return _dummyChats
-        .where(
-          (chat) =>
-              chat.name.toLowerCase().contains(_searchQuery.toLowerCase()),
-        )
-        .toList();
   }
 
   @override
@@ -119,22 +60,56 @@ class _HomePageState extends State<HomePage> {
       _selectedIndex = index;
     });
 
-    // TODO: Navigate to respective pages when they are created
     if (index == 1) {
-      // Friends page - to be implemented
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Friends page coming soon!')),
-      );
+      Navigator.pushNamed(context, '/friends');
+      setState(() {
+        _selectedIndex = 0;
+      });
     } else if (index == 2) {
-      // Settings page - to be implemented
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Settings page coming soon!')),
       );
     } else if (index == 3) {
-      // Profile page - to be implemented
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile page coming soon!')),
       );
+    }
+  }
+
+  void _openChat(User partner) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatPage(partner: partner),
+      ),
+    ).then((_) {
+      // Refresh conversations when returning from chat
+      _loadData();
+    });
+  }
+
+  String _getInitials(User user) {
+    final first = user.firstname?.isNotEmpty == true
+        ? user.firstname![0].toUpperCase()
+        : '';
+    final last = user.lastname?.isNotEmpty == true
+        ? user.lastname![0].toUpperCase()
+        : '';
+    return '$first$last'.isEmpty ? '?' : '$first$last';
+  }
+
+  String _formatTime(DateTime? dateTime) {
+    if (dateTime == null) return '';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final messageDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
+
+    if (messageDate == today) {
+      return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+    } else if (messageDate == today.subtract(const Duration(days: 1))) {
+      return 'Yesterday';
+    } else {
+      return '${dateTime.day}/${dateTime.month}';
     }
   }
 
@@ -148,7 +123,6 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        // 1. Animate the Leading Icon (Avatar <-> Back Arrow)
         leading: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           transitionBuilder: (Widget child, Animation<double> animation) {
@@ -156,7 +130,7 @@ class _HomePageState extends State<HomePage> {
           },
           child: _isSearching
               ? IconButton(
-                  key: const ValueKey('BackBtn'), // Keys are crucial for animation!
+                  key: const ValueKey('BackBtn'),
                   icon: const Icon(Icons.arrow_back, color: Colors.black),
                   onPressed: _toggleSearch,
                 )
@@ -176,20 +150,18 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
         ),
-        // 2. Animate the Title (Text <-> Search Field)
         title: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
-          // This creates a "Slide in from right" effect
           transitionBuilder: (Widget child, Animation<double> animation) {
             final offsetAnimation = Tween<Offset>(
-              begin: const Offset(1.0, 0.0), // Start from right
+              begin: const Offset(1.0, 0.0),
               end: Offset.zero,
             ).animate(animation);
             return SlideTransition(position: offsetAnimation, child: child);
           },
           child: _isSearching
               ? TextField(
-                  key: const ValueKey('SearchField'), // Unique Key
+                  key: const ValueKey('SearchField'),
                   controller: _searchController,
                   focusNode: _searchFocusNode,
                   autofocus: true,
@@ -207,7 +179,7 @@ class _HomePageState extends State<HomePage> {
                 )
               : const Align(
                   alignment: Alignment.centerLeft,
-                  key: ValueKey('Title'), // Unique Key
+                  key: ValueKey('Title'),
                   child: Text(
                     'ChatApp',
                     style: TextStyle(
@@ -219,27 +191,12 @@ class _HomePageState extends State<HomePage> {
                 ),
         ),
         actions: [
-          // 3. Animate the Actions (Hide Search Icon smoothly)
           AnimatedCrossFade(
-            firstChild: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.search, color: Colors.black),
-                  onPressed: _toggleSearch,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add_circle_outline, color: Colors.black),
-                  onPressed: () {
-                    // TODO: Implement new chat functionality
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('New chat coming soon!')),
-                    );
-                  },
-                ),
-              ],
+            firstChild: IconButton(
+              icon: const Icon(Icons.search, color: Colors.black),
+              onPressed: _toggleSearch,
             ),
-            secondChild: const SizedBox.shrink(), // Empty widget when searching
+            secondChild: const SizedBox.shrink(),
             crossFadeState: _isSearching
                 ? CrossFadeState.showSecond
                 : CrossFadeState.showFirst,
@@ -247,25 +204,26 @@ class _HomePageState extends State<HomePage> {
           )
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: _filteredChats.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No chats found',
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: _filteredChats.length,
-                    itemBuilder: (context, index) {
-                      return _buildChatItem(_filteredChats[index]);
-                    },
-                  ),
+      body: RefreshIndicator(
+        color: const Color(0xFF6750A4),
+        onRefresh: () async {
+          _loadData();
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Friends Section (horizontal scroll)
+              _buildFriendsSection(),
+              
+              const Divider(height: 1),
+              
+              // Conversations Section
+              _buildConversationsSection(),
+            ],
           ),
-        ],
+        ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
@@ -273,62 +231,331 @@ class _HomePageState extends State<HomePage> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: const Color(0xFF6750A4),
         unselectedItemColor: Colors.grey,
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
         enableFeedback: false,
         backgroundColor: Colors.white,
         elevation: 8,
-        iconSize: 28,
+        iconSize: 26,
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Friends'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
+            icon: Icon(Icons.chat_bubble_outline),
+            activeIcon: Icon(Icons.chat_bubble),
+            label: 'Messages',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_outline),
+            activeIcon: Icon(Icons.people),
+            label: 'Friends',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings_outlined),
+            activeIcon: Icon(Icons.settings),
             label: 'Settings',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildChatItem(DummyChat chat) {
+  Widget _buildFriendsSection() {
+    return Consumer<FriendsProvider>(
+      builder: (context, friendsProvider, _) {
+        final friends = friendsProvider.friends;
+
+        if (friends.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        // Filter friends based on search
+        final filteredFriends = _searchQuery.isEmpty
+            ? friends
+            : friends.where((friend) {
+                final name = '${friend.firstname ?? ''} ${friend.lastname ?? ''}'.toLowerCase();
+                return name.contains(_searchQuery.toLowerCase());
+              }).toList();
+
+        if (filteredFriends.isEmpty && _searchQuery.isNotEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Friends',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pushNamed(context, '/friends'),
+                    child: const Text(
+                      'See all',
+                      style: TextStyle(
+                        color: Color(0xFF6750A4),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              height: 100,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                itemCount: filteredFriends.length,
+                itemBuilder: (context, index) {
+                  final friend = filteredFriends[index];
+                  return _buildFriendAvatar(friend);
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildFriendAvatar(User friend) {
+    return GestureDetector(
+      onTap: () => _openChat(friend),
+      child: Container(
+        width: 72,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        child: Column(
+          children: [
+            Stack(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: const Color(0xFFE8DEF8),
+                  backgroundImage: friend.profilePic != null
+                      ? NetworkImage(friend.profilePic!)
+                      : null,
+                  child: friend.profilePic == null
+                      ? Text(
+                          _getInitials(friend),
+                          style: const TextStyle(
+                            color: Color(0xFF6750A4),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        )
+                      : null,
+                ),
+                Positioned(
+                  right: 2,
+                  bottom: 2,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              friend.firstname ?? 'User',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConversationsSection() {
+    return Consumer<ChatProvider>(
+      builder: (context, chatProvider, _) {
+        if (chatProvider.isLoading) {
+          return const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF6750A4),
+              ),
+            ),
+          );
+        }
+
+        final conversations = _searchQuery.isEmpty
+            ? chatProvider.conversations
+            : chatProvider.searchConversations(_searchQuery);
+
+        if (conversations.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(32),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.chat_bubble_outline,
+                    size: 64,
+                    color: Colors.grey.shade300,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _searchQuery.isEmpty
+                        ? 'No conversations yet'
+                        : 'No conversations found',
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                    ),
+                  ),
+                  if (_searchQuery.isEmpty) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Start chatting with your friends!',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                'Messages',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: conversations.length,
+              itemBuilder: (context, index) {
+                return _buildConversationItem(conversations[index]);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildConversationItem(Conversation conversation) {
+    final participant = conversation.participant;
+    final lastMessage = conversation.lastMessage;
+    final currentUserId = context.read<AuthProvider>().currentUser?.userId;
+    final isSentByMe = lastMessage.senderId == currentUserId;
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 16.0,
         vertical: 8.0,
       ),
-      leading: CircleAvatar(
-        backgroundColor: const Color(0xFFE8DEF8),
-        radius: 28,
-        child: Text(
-          chat.avatarInitials,
-          style: const TextStyle(
-            color: Color(0xFF6750A4),
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
+      leading: Stack(
+        children: [
+          CircleAvatar(
+            backgroundColor: const Color(0xFFE8DEF8),
+            radius: 28,
+            backgroundImage: participant.profilePic != null
+                ? NetworkImage(participant.profilePic!)
+                : null,
+            child: participant.profilePic == null
+                ? Text(
+                    _getInitials(participant),
+                    style: const TextStyle(
+                      color: Color(0xFF6750A4),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  )
+                : null,
           ),
-        ),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: Colors.green,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+            ),
+          ),
+        ],
       ),
       title: Text(
-        chat.name,
+        '${participant.firstname ?? ''} ${participant.lastname ?? ''}'.trim(),
         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
       ),
-      subtitle: Text(
-        chat.lastMessage,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(color: Colors.grey, fontSize: 14),
+      subtitle: Row(
+        children: [
+          if (isSentByMe)
+            const Icon(
+              Icons.done_all,
+              size: 16,
+              color: Color(0xFF6750A4),
+            ),
+          if (isSentByMe) const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              lastMessage.message ?? '',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
       ),
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Text(
-            chat.time,
+            _formatTime(lastMessage.createdAt),
             style: const TextStyle(color: Colors.grey, fontSize: 12),
           ),
-          if (chat.unreadCount != null) ...[
+          if (conversation.unreadCount > 0) ...[
             const SizedBox(height: 4),
             Container(
               padding: const EdgeInsets.all(6),
@@ -337,7 +564,7 @@ class _HomePageState extends State<HomePage> {
                 shape: BoxShape.circle,
               ),
               child: Text(
-                '${chat.unreadCount}',
+                '${conversation.unreadCount}',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 10,
@@ -348,12 +575,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ],
       ),
-      onTap: () {
-        // TODO: Navigate to chat detail page when implemented
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Opening chat with ${chat.name}')),
-        );
-      },
+      onTap: () => _openChat(participant),
     );
   }
 }

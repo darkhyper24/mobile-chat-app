@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'database/db.dart';
 import 'providers/auth_provider.dart';
+import 'providers/friends_provider.dart';
+import 'providers/chat_provider.dart';
 import 'ui/signup.dart';
 import 'ui/login.dart';
 import 'ui/home.dart';
+import 'ui/friends.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,8 +23,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => FriendsProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
+      ],
       child: MaterialApp(
         title: 'ChatApp',
         debugShowCheckedModeBanner: false,
@@ -34,6 +41,7 @@ class MyApp extends StatelessWidget {
           '/login': (context) => const LoginPage(),
           '/signup': (context) => const SignupPage(),
           '/home': (context) => const HomePage(),
+          '/friends': (context) => const FriendsPage(),
         },
       ),
     );
