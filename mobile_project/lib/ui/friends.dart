@@ -102,10 +102,8 @@ class _FriendsPageState extends State<FriendsPage>
     } else if (index == 1) {
       // Already on Friends page
     } else if (index == 2) {
-      // Settings page - to be implemented
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Settings page coming soon!')),
-      );
+      // Navigate to Settings page
+      Navigator.pushNamed(context, '/settings');
     } else if (index == 3) {
       // Profile page - to be implemented
       ScaffoldMessenger.of(context).showSnackBar(

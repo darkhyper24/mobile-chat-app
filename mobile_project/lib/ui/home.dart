@@ -66,9 +66,10 @@ class _HomePageState extends State<HomePage> {
         _selectedIndex = 0;
       });
     } else if (index == 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Settings page coming soon!')),
-      );
+      Navigator.pushNamed(context, '/settings');
+      setState(() {
+        _selectedIndex = 0;
+      });
     } else if (index == 3) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile page coming soon!')),
@@ -79,9 +80,7 @@ class _HomePageState extends State<HomePage> {
   void _openChat(User partner) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => ChatPage(partner: partner),
-      ),
+      MaterialPageRoute(builder: (context) => ChatPage(partner: partner)),
     ).then((_) {
       // Refresh conversations when returning from chat
       _loadData();
@@ -201,7 +200,7 @@ class _HomePageState extends State<HomePage> {
                 ? CrossFadeState.showSecond
                 : CrossFadeState.showFirst,
             duration: const Duration(milliseconds: 250),
-          )
+          ),
         ],
       ),
       body: RefreshIndicator(
@@ -216,9 +215,9 @@ class _HomePageState extends State<HomePage> {
             children: [
               // Friends Section (horizontal scroll)
               _buildFriendsSection(),
-              
+
               const Divider(height: 1),
-              
+
               // Conversations Section
               _buildConversationsSection(),
             ],
@@ -278,7 +277,9 @@ class _HomePageState extends State<HomePage> {
         final filteredFriends = _searchQuery.isEmpty
             ? friends
             : friends.where((friend) {
-                final name = '${friend.firstname ?? ''} ${friend.lastname ?? ''}'.toLowerCase();
+                final name =
+                    '${friend.firstname ?? ''} ${friend.lastname ?? ''}'
+                        .toLowerCase();
                 return name.contains(_searchQuery.toLowerCase());
               }).toList();
 
@@ -379,10 +380,7 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 6),
             Text(
               friend.firstname ?? 'User',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
@@ -400,9 +398,7 @@ class _HomePageState extends State<HomePage> {
           return const Padding(
             padding: EdgeInsets.all(32),
             child: Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF6750A4),
-              ),
+              child: CircularProgressIndicator(color: Color(0xFF6750A4)),
             ),
           );
         }
@@ -427,19 +423,13 @@ class _HomePageState extends State<HomePage> {
                     _searchQuery.isEmpty
                         ? 'No conversations yet'
                         : 'No conversations found',
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 16,
-                    ),
+                    style: const TextStyle(color: Colors.grey, fontSize: 16),
                   ),
                   if (_searchQuery.isEmpty) ...[
                     const SizedBox(height: 8),
                     const Text(
                       'Start chatting with your friends!',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                   ],
                 ],
@@ -528,21 +518,14 @@ class _HomePageState extends State<HomePage> {
       subtitle: Row(
         children: [
           if (isSentByMe)
-            const Icon(
-              Icons.done_all,
-              size: 16,
-              color: Color(0xFF6750A4),
-            ),
+            const Icon(Icons.done_all, size: 16, color: Color(0xFF6750A4)),
           if (isSentByMe) const SizedBox(width: 4),
           Expanded(
             child: Text(
               lastMessage.message ?? '',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
             ),
           ),
         ],

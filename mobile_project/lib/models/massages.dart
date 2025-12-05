@@ -19,13 +19,13 @@ class Message {
 
   factory Message.fromJson(Map<String, dynamic> json) {
     return Message(
-      messageId: json['message_id'] as String,
+      messageId: (json['message_id'] ?? json['id'] ?? '') as String,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
       senderId: json['sender_id'] as String?,
       receiverId: json['receiver_id'] as String?,
-      message: json['message'] as String?,
+      message: json['massage'] as String?,
       image: json['image'] as String?,
       groupId: json['group_id'] as String?,
     );
@@ -37,7 +37,7 @@ class Message {
       'created_at': createdAt?.toIso8601String(),
       'sender_id': senderId,
       'receiver_id': receiverId,
-      'message': message,
+      'massage': message,
       'image': image,
       'group_id': groupId,
     };
