@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/friend_service.dart';
 import '../models/users.dart';
-import '../models/friend_request.dart';
 
 class FriendsProvider extends ChangeNotifier {
   final FriendService _friendService = FriendService();

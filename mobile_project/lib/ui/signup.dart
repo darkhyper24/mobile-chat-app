@@ -272,7 +272,7 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: _selectedGender,
+                    initialValue: _selectedGender,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: const Color(0xFFF5F5F5),

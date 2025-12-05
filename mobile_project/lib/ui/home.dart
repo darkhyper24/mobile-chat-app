@@ -6,6 +6,7 @@ import '../providers/friends_provider.dart';
 import '../services/message_service.dart';
 import '../models/users.dart';
 import 'chat.dart';
+import 'profile.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -71,9 +72,15 @@ class _HomePageState extends State<HomePage> {
         _selectedIndex = 0;
       });
     } else if (index == 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile page coming soon!')),
-      );
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfilePage()),
+      ).then((_) {
+        _loadData();
+      });
+      setState(() {
+        _selectedIndex = 0;
+      });
     }
   }
 
@@ -133,18 +140,36 @@ class _HomePageState extends State<HomePage> {
                   icon: const Icon(Icons.arrow_back, color: Colors.black),
                   onPressed: _toggleSearch,
                 )
-              : Padding(
+              : GestureDetector(
                   key: const ValueKey('Avatar'),
-                  padding: const EdgeInsets.all(8.0),
-                  child: CircleAvatar(
-                    backgroundColor: const Color(0xFFE8DEF8),
-                    child: Text(
-                      user?.firstname?.substring(0, 1).toUpperCase() ?? 'U',
-                      style: const TextStyle(
-                        color: Color(0xFF6750A4),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ProfilePage(),
                       ),
+                    ).then((_) {
+                      _loadData();
+                    });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: CircleAvatar(
+                      backgroundColor: const Color(0xFFE8DEF8),
+                      backgroundImage: user?.profilePic != null
+                          ? NetworkImage(user!.profilePic!)
+                          : null,
+                      child: user?.profilePic == null
+                          ? Text(
+                              user?.firstname?.substring(0, 1).toUpperCase() ??
+                                  'U',
+                              style: const TextStyle(
+                                color: Color(0xFF6750A4),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            )
+                          : null,
                     ),
                   ),
                 ),

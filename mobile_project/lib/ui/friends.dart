@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/friends_provider.dart';
 import '../models/users.dart';
+import 'profile.dart';
 
 class FriendsPage extends StatefulWidget {
   const FriendsPage({super.key});
@@ -46,8 +47,8 @@ class _FriendsPageState extends State<FriendsPage>
   List<User> _getFilteredFriends(List<User> friends) {
     if (_searchQuery.isEmpty) return friends;
     return friends.where((friend) {
-      final fullName =
-          '${friend.firstname ?? ''} ${friend.lastname ?? ''}'.toLowerCase();
+      final fullName = '${friend.firstname ?? ''} ${friend.lastname ?? ''}'
+          .toLowerCase();
       final username = (friend.username ?? '').toLowerCase();
       final query = _searchQuery.toLowerCase();
       return fullName.contains(query) || username.contains(query);
@@ -63,7 +64,7 @@ class _FriendsPageState extends State<FriendsPage>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _AddFriendBottomSheet(
+      builder: (modalContext) => _AddFriendBottomSheet(
         controller: _addFriendController,
         onSearch: (query) {
           final userId = context.read<AuthProvider>().currentUser?.userId;
@@ -74,13 +75,12 @@ class _FriendsPageState extends State<FriendsPage>
         onSendRequest: (receiverId) async {
           final userId = context.read<AuthProvider>().currentUser?.userId;
           if (userId != null) {
-            final success = await context.read<FriendsProvider>().sendFriendRequest(
-              senderId: userId,
-              receiverId: receiverId,
-            );
-            if (mounted) {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
+            final success = await context
+                .read<FriendsProvider>()
+                .sendFriendRequest(senderId: userId, receiverId: receiverId);
+            if (modalContext.mounted) {
+              Navigator.pop(modalContext);
+              ScaffoldMessenger.of(modalContext).showSnackBar(
                 SnackBar(
                   content: Text(
                     success ? 'Friend request sent!' : 'Failed to send request',
@@ -105,9 +105,10 @@ class _FriendsPageState extends State<FriendsPage>
       // Navigate to Settings page
       Navigator.pushNamed(context, '/settings');
     } else if (index == 3) {
-      // Profile page - to be implemented
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile page coming soon!')),
+      // Navigate to Profile page
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfilePage()),
       );
     }
   }
@@ -190,7 +191,7 @@ class _FriendsPageState extends State<FriendsPage>
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -261,10 +262,7 @@ class _FriendsPageState extends State<FriendsPage>
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: [
-                _buildFriendsTab(),
-                _buildRequestsTab(),
-              ],
+              children: [_buildFriendsTab(), _buildRequestsTab()],
             ),
           ),
         ],
@@ -314,9 +312,7 @@ class _FriendsPageState extends State<FriendsPage>
       builder: (context, provider, _) {
         if (provider.isLoading) {
           return const Center(
-            child: CircularProgressIndicator(
-              color: Color(0xFF6750A4),
-            ),
+            child: CircularProgressIndicator(color: Color(0xFF6750A4)),
           );
         }
 
@@ -334,13 +330,8 @@ class _FriendsPageState extends State<FriendsPage>
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  _searchQuery.isEmpty
-                      ? 'No friends yet'
-                      : 'No friends found',
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 16,
-                  ),
+                  _searchQuery.isEmpty ? 'No friends yet' : 'No friends found',
+                  style: const TextStyle(color: Colors.grey, fontSize: 16),
                 ),
                 if (_searchQuery.isEmpty) ...[
                   const SizedBox(height: 8),
@@ -402,14 +393,16 @@ class _FriendsPageState extends State<FriendsPage>
                     ),
                   );
 
-                  if (confirm == true && mounted) {
-                    final userId =
-                        context.read<AuthProvider>().currentUser?.userId;
+                  if (confirm == true && context.mounted) {
+                    final userId = context
+                        .read<AuthProvider>()
+                        .currentUser
+                        ?.userId;
                     if (userId != null) {
                       await context.read<FriendsProvider>().removeFriend(
-                            userId: userId,
-                            friendId: filteredFriends[index].userId,
-                          );
+                        userId: userId,
+                        friendId: filteredFriends[index].userId,
+                      );
                     }
                   }
                 },
@@ -426,9 +419,7 @@ class _FriendsPageState extends State<FriendsPage>
       builder: (context, provider, _) {
         if (provider.isLoading) {
           return const Center(
-            child: CircularProgressIndicator(
-              color: Color(0xFF6750A4),
-            ),
+            child: CircularProgressIndicator(color: Color(0xFF6750A4)),
           );
         }
 
@@ -437,18 +428,11 @@ class _FriendsPageState extends State<FriendsPage>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.mail_outline,
-                  size: 64,
-                  color: Colors.grey.shade300,
-                ),
+                Icon(Icons.mail_outline, size: 64, color: Colors.grey.shade300),
                 const SizedBox(height: 16),
                 const Text(
                   'No pending requests',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: Colors.grey, fontSize: 16),
                 ),
               ],
             ),
@@ -475,12 +459,16 @@ class _FriendsPageState extends State<FriendsPage>
                 senderUsername: sender?['username'] ?? '',
                 senderProfilePic: sender?['profile_pic'],
                 onAccept: () async {
-                  final userId =
-                      context.read<AuthProvider>().currentUser?.userId;
+                  final userId = context
+                      .read<AuthProvider>()
+                      .currentUser
+                      ?.userId;
                   if (userId != null) {
-                    final success =
-                        await provider.acceptFriendRequest(request['id'], userId);
-                    if (mounted) {
+                    final success = await provider.acceptFriendRequest(
+                      request['id'],
+                      userId,
+                    );
+                    if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
@@ -495,8 +483,10 @@ class _FriendsPageState extends State<FriendsPage>
                   }
                 },
                 onDecline: () async {
-                  final userId =
-                      context.read<AuthProvider>().currentUser?.userId;
+                  final userId = context
+                      .read<AuthProvider>()
+                      .currentUser
+                      ?.userId;
                   if (userId != null) {
                     await provider.declineFriendRequest(request['id'], userId);
                   }
@@ -580,17 +570,11 @@ class _FriendListItem extends StatelessWidget {
         ),
         title: Text(
           '${friend.firstname ?? ''} ${friend.lastname ?? ''}'.trim(),
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
         ),
         subtitle: Text(
           '@${friend.username ?? 'user'}',
-          style: const TextStyle(
-            color: Colors.grey,
-            fontSize: 14,
-          ),
+          style: const TextStyle(color: Colors.grey, fontSize: 14),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -603,7 +587,10 @@ class _FriendListItem extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
               ),
               child: const Text('Message'),
             ),
@@ -622,7 +609,10 @@ class _FriendListItem extends StatelessWidget {
                     children: [
                       Icon(Icons.person_remove, color: Colors.red, size: 20),
                       SizedBox(width: 8),
-                      Text('Remove friend', style: TextStyle(color: Colors.red)),
+                      Text(
+                        'Remove friend',
+                        style: TextStyle(color: Colors.red),
+                      ),
                     ],
                   ),
                 ),
@@ -678,8 +668,9 @@ class _FriendRequestItem extends StatelessWidget {
           CircleAvatar(
             radius: 24,
             backgroundColor: const Color(0xFFE8DEF8),
-            backgroundImage:
-                senderProfilePic != null ? NetworkImage(senderProfilePic!) : null,
+            backgroundImage: senderProfilePic != null
+                ? NetworkImage(senderProfilePic!)
+                : null,
             child: senderProfilePic == null
                 ? Text(
                     _getInitials(),
@@ -706,10 +697,7 @@ class _FriendRequestItem extends StatelessWidget {
                 if (senderUsername.isNotEmpty)
                   Text(
                     '@$senderUsername',
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 14,
-                    ),
+                    style: const TextStyle(color: Colors.grey, fontSize: 14),
                   ),
               ],
             ),
@@ -785,10 +773,7 @@ class _AddFriendBottomSheetState extends State<_AddFriendBottomSheet> {
             padding: EdgeInsets.all(16),
             child: Text(
               'Add Friend',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
 
@@ -826,9 +811,7 @@ class _AddFriendBottomSheetState extends State<_AddFriendBottomSheet> {
               builder: (context, provider, _) {
                 if (provider.isSearching) {
                   return const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF6750A4),
-                    ),
+                    child: CircularProgressIndicator(color: Color(0xFF6750A4)),
                   );
                 }
 
@@ -868,8 +851,9 @@ class _AddFriendBottomSheetState extends State<_AddFriendBottomSheet> {
                     final user = provider.searchResults[index];
                     final isFriend = provider.isFriend(user.userId);
                     final hasSentRequest = provider.hasRequestSent(user.userId);
-                    final hasReceivedRequest =
-                        provider.hasRequestReceived(user.userId);
+                    final hasReceivedRequest = provider.hasRequestReceived(
+                      user.userId,
+                    );
 
                     return _SearchResultItem(
                       user: user,
@@ -941,8 +925,9 @@ class _SearchResultItem extends StatelessWidget {
           CircleAvatar(
             radius: 22,
             backgroundColor: const Color(0xFFE8DEF8),
-            backgroundImage:
-                user.profilePic != null ? NetworkImage(user.profilePic!) : null,
+            backgroundImage: user.profilePic != null
+                ? NetworkImage(user.profilePic!)
+                : null,
             child: user.profilePic == null
                 ? Text(
                     _getInitials(),
@@ -968,10 +953,7 @@ class _SearchResultItem extends StatelessWidget {
                 ),
                 Text(
                   '@${user.username ?? 'user'}',
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 13,
-                  ),
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
               ],
             ),
@@ -996,4 +978,3 @@ class _SearchResultItem extends StatelessWidget {
     );
   }
 }
-

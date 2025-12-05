@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../services/location_service.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import '../models/users.dart';
@@ -118,6 +120,37 @@ class _ChatPageState extends State<ChatPage> {
 
     if (success) {
       _scrollToBottom(animate: true);
+    }
+  }
+
+  Future<void> _shareLocation() async {
+    try {
+      final locationService = LocationService();
+      final position = await locationService.getCurrentLocation();
+      if (position != null) {
+        final url = locationService.getGoogleMapsUrl(position.latitude, position.longitude);
+        
+        final userId = context.read<AuthProvider>().currentUser?.userId;
+        if (userId == null) return;
+
+        _shouldAutoScroll = true;
+        
+        final success = await _chatProvider.sendMessage(
+          senderId: userId,
+          receiverId: widget.partner.userId,
+          text: url,
+        );
+
+        if (success) {
+          _scrollToBottom(animate: true);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
     }
   }
 
@@ -339,6 +372,11 @@ class _ChatPageState extends State<ChatPage> {
             ),
             child: Row(
               children: [
+                IconButton(
+                  icon: const Icon(Icons.location_on_outlined, color: Color(0xFF6750A4)),
+                  onPressed: _shareLocation,
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
@@ -456,6 +494,8 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLocation = message.message?.startsWith('https://www.google.com/maps/search/') ?? false;
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -485,13 +525,16 @@ class _MessageBubble extends StatelessWidget {
         child: Column(
           crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            Text(
-              message.message ?? '',
-              style: TextStyle(
-                color: isMe ? Colors.white : Colors.black87,
-                fontSize: 15,
+            if (isLocation)
+              _buildLocationContent(context)
+            else
+              Text(
+                message.message ?? '',
+                style: TextStyle(
+                  color: isMe ? Colors.white : Colors.black87,
+                  fontSize: 15,
+                ),
               ),
-            ),
             const SizedBox(height: 4),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -515,6 +558,35 @@ class _MessageBubble extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLocationContent(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        final url = Uri.parse(message.message!);
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url);
+        }
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.location_on,
+            color: isMe ? Colors.white : Colors.red,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Shared Location',
+            style: TextStyle(
+              color: isMe ? Colors.white : Colors.black87,
+              fontSize: 15,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ],
       ),
     );
   }
