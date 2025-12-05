@@ -1,6 +1,5 @@
 import '../database/db.dart';
 import '../models/users.dart';
-import '../models/friends.dart';
 import '../models/friend_request.dart';
 
 class FriendService {
