@@ -365,7 +365,8 @@ class _FriendsPageState extends State<FriendsPage>
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ChatPage(partner: filteredFriends[index]),
+                      builder: (context) =>
+                          ChatPage(partner: filteredFriends[index]),
                     ),
                   );
                 },

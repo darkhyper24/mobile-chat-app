@@ -39,7 +39,7 @@ class _SignupPageState extends State<SignupPage> {
     }
 
     final authProvider = context.read<AuthProvider>();
-    
+
     final success = await authProvider.signUp(
       email: _emailController.text.trim(),
       password: _passwordController.text,
@@ -413,7 +413,9 @@ class _SignupPageState extends State<SignupPage> {
                       return SizedBox(
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: authProvider.isLoading ? null : _handleSignup,
+                          onPressed: authProvider.isLoading
+                              ? null
+                              : _handleSignup,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF6750A4),
                             foregroundColor: Colors.white,
