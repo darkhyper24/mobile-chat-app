@@ -43,9 +43,7 @@ class UserProfilePage extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.only(bottom: 24),
-              decoration: const BoxDecoration(
-                color: Color(0xFF6750A4),
-              ),
+              decoration: const BoxDecoration(color: Color(0xFF6750A4)),
               child: Column(
                 children: [
                   const SizedBox(height: 16),
@@ -70,9 +68,12 @@ class UserProfilePage extends StatelessWidget {
                   const SizedBox(height: 16),
                   // User Name
                   Text(
-                    '${user.firstname ?? ''} ${user.lastname ?? ''}'.trim().isEmpty
+                    '${user.firstname ?? ''} ${user.lastname ?? ''}'
+                            .trim()
+                            .isEmpty
                         ? 'Unknown User'
-                        : '${user.firstname ?? ''} ${user.lastname ?? ''}'.trim(),
+                        : '${user.firstname ?? ''} ${user.lastname ?? ''}'
+                              .trim(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -83,10 +84,7 @@ class UserProfilePage extends StatelessWidget {
                   // Username
                   Text(
                     '@${user.username ?? 'user'}',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
-                    ),
+                    style: const TextStyle(color: Colors.white70, fontSize: 16),
                   ),
                 ],
               ),
@@ -175,7 +173,9 @@ class UserProfilePage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: value == 'Not set' ? Colors.grey.shade400 : Colors.black,
+                    color: value == 'Not set'
+                        ? Colors.grey.shade400
+                        : Colors.black,
                   ),
                 ),
               ],

@@ -79,10 +79,7 @@ class _ProfilePageState extends State<ProfilePage> {
           );
           break;
         case 'bio':
-          result = await _userService.updateProfile(
-            userId: userId,
-            bio: value,
-          );
+          result = await _userService.updateProfile(userId: userId, bio: value);
           break;
       }
 

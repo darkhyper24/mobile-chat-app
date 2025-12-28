@@ -259,7 +259,8 @@ class _ChatPageState extends State<ChatPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => UserProfilePage(user: widget.partner),
+                              builder: (context) =>
+                                  UserProfilePage(user: widget.partner),
                             ),
                           );
                         },
