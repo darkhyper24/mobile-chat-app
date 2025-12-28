@@ -56,28 +56,37 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final currentUserId = context.read<AuthProvider>().currentUser?.userId;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundColor = isDark ? const Color(0xFF121212) : const Color(0xFFF8F8F8);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
+    final primaryColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
+    final avatarBgColor = isDark ? const Color(0xFF3E3253) : const Color(0xFFE8DEF8);
+    final dividerColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: cardColor,
         elevation: 1,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Group Settings',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+          style: TextStyle(color: textColor, fontWeight: FontWeight.w600),
         ),
         actions: [
           if (_isEditing)
             TextButton(
               onPressed: _saveChanges,
-              child: const Text(
+              child: Text(
                 'Save',
                 style: TextStyle(
-                  color: Color(0xFF6750A4),
+                  color: primaryColor,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -88,14 +97,14 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
         builder: (context, groupProvider, _) {
           final group = groupProvider.currentGroup;
           if (group == null) {
-            return const Center(child: Text('Group not found'));
+            return Center(child: Text('Group not found', style: TextStyle(color: textColor)));
           }
 
           return ListView(
             children: [
               // Group Info Header
               Container(
-                color: Colors.white,
+                color: cardColor,
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
@@ -103,19 +112,19 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       children: [
                         CircleAvatar(
                           radius: 50,
-                          backgroundColor: const Color(0xFFE8DEF8),
+                          backgroundColor: avatarBgColor,
                           backgroundImage: group.image != null
                               ? NetworkImage(group.image!)
                               : null,
                           child: _isUploadingImage
-                              ? const CircularProgressIndicator(
-                                  color: Color(0xFF6750A4),
+                              ? CircularProgressIndicator(
+                                  color: primaryColor,
                                 )
                               : group.image == null
                               ? Text(
                                   _getInitials(group.name),
-                                  style: const TextStyle(
-                                    color: Color(0xFF6750A4),
+                                  style: TextStyle(
+                                    color: primaryColor,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 28,
                                   ),
@@ -148,16 +157,19 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       TextField(
                         controller: _nameController,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
+                          color: textColor,
                         ),
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
+                        decoration: InputDecoration(
+                          border: const OutlineInputBorder(),
+                          contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 8,
                           ),
+                          fillColor: isDark ? Colors.grey.shade800 : null,
+                          filled: isDark,
                         ),
                       )
                     else
@@ -166,14 +178,15 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                         children: [
                           Text(
                             group.name ?? 'Group',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
+                              color: textColor,
                             ),
                           ),
                           if (groupProvider.isCurrentUserAdmin)
                             IconButton(
-                              icon: const Icon(Icons.edit, size: 20),
+                              icon: Icon(Icons.edit, size: 20, color: textColor),
                               onPressed: () {
                                 setState(() => _isEditing = true);
                               },
@@ -184,7 +197,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     Text(
                       '${groupProvider.currentGroupMembers.length} members',
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color: subtitleColor,
                         fontSize: 14,
                       ),
                     ),
@@ -193,9 +206,13 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       TextField(
                         controller: _descriptionController,
                         maxLines: 3,
-                        decoration: const InputDecoration(
+                        style: TextStyle(color: textColor),
+                        decoration: InputDecoration(
                           labelText: 'Description',
-                          border: OutlineInputBorder(),
+                          labelStyle: TextStyle(color: subtitleColor),
+                          border: const OutlineInputBorder(),
+                          fillColor: isDark ? Colors.grey.shade800 : null,
+                          filled: isDark,
                         ),
                       ),
                     ] else if (group.description != null &&
@@ -205,7 +222,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                         group.description!,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.grey.shade600,
+                          color: subtitleColor,
                           fontSize: 14,
                         ),
                       ),
@@ -217,7 +234,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
               // Members Section
               Container(
-                color: Colors.white,
+                color: cardColor,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -226,29 +243,30 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'Members',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
+                              color: textColor,
                             ),
                           ),
                           if (groupProvider.isCurrentUserAdmin)
                             TextButton.icon(
                               onPressed: () => _showAddMembersSheet(context),
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.person_add,
-                                color: Color(0xFF6750A4),
+                                color: primaryColor,
                               ),
-                              label: const Text(
+                              label: Text(
                                 'Add',
-                                style: TextStyle(color: Color(0xFF6750A4)),
+                                style: TextStyle(color: primaryColor),
                               ),
                             ),
                         ],
                       ),
                     ),
-                    const Divider(height: 1),
+                    Divider(height: 1, color: dividerColor),
                     ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -260,15 +278,15 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
                         return ListTile(
                           leading: CircleAvatar(
-                            backgroundColor: const Color(0xFFE8DEF8),
+                            backgroundColor: avatarBgColor,
                             backgroundImage: user?.profilePic != null
                                 ? NetworkImage(user!.profilePic!)
                                 : null,
                             child: user?.profilePic == null
                                 ? Text(
                                     user != null ? _getUserInitials(user) : '?',
-                                    style: const TextStyle(
-                                      color: Color(0xFF6750A4),
+                                    style: TextStyle(
+                                      color: primaryColor,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   )
@@ -281,15 +299,16 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                                     ? '${user.firstname ?? ''} ${user.lastname ?? ''}'
                                           .trim()
                                     : 'Unknown User',
+                                style: TextStyle(color: textColor),
                               ),
                               if (isCurrentUser)
-                                const Text(
+                                Text(
                                   ' (You)',
-                                  style: TextStyle(color: Colors.grey),
+                                  style: TextStyle(color: subtitleColor),
                                 ),
                             ],
                           ),
-                          subtitle: Text('@${user?.username ?? 'user'}'),
+                          subtitle: Text('@${user?.username ?? 'user'}', style: TextStyle(color: subtitleColor)),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -300,13 +319,13 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFE8DEF8),
+                                    color: avatarBgColor,
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Text(
+                                  child: Text(
                                     'Admin',
                                     style: TextStyle(
-                                      color: Color(0xFF6750A4),
+                                      color: primaryColor,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -350,7 +369,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
               // Actions Section
               Container(
-                color: Colors.white,
+                color: cardColor,
                 child: Column(
                   children: [
                     ListTile(
@@ -362,7 +381,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       onTap: () => _showLeaveGroupDialog(context),
                     ),
                     if (groupProvider.isCurrentUserAdmin) ...[
-                      const Divider(height: 1),
+                      Divider(height: 1, color: dividerColor),
                       ListTile(
                         leading: const Icon(Icons.delete, color: Colors.red),
                         title: const Text(
@@ -444,6 +463,16 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
       context.read<FriendsProvider>().loadFriends(userId);
     }
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final sheetColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
+    final primaryColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
+    final avatarBgColor = isDark ? const Color(0xFF3E3253) : const Color(0xFFE8DEF8);
+    final handleColor = isDark ? Colors.grey.shade600 : Colors.grey.shade300;
+    final dividerColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -453,9 +482,9 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
         minChildSize: 0.5,
         maxChildSize: 0.9,
         builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: BoxDecoration(
+            color: sheetColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             children: [
@@ -464,23 +493,23 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: handleColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.all(16),
+              Padding(
+                padding: const EdgeInsets.all(16),
                 child: Text(
                   'Add Members',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textColor),
                 ),
               ),
-              const Divider(),
+              Divider(color: dividerColor),
               Expanded(
                 child: Consumer2<FriendsProvider, GroupProvider>(
                   builder: (context, friendsProvider, groupProvider, _) {
                     if (friendsProvider.isLoading) {
-                      return const Center(child: CircularProgressIndicator());
+                      return Center(child: CircularProgressIndicator(color: primaryColor));
                     }
 
                     // Filter out users who are already members
@@ -499,12 +528,12 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                             Icon(
                               Icons.people_outline,
                               size: 48,
-                              color: Colors.grey.shade400,
+                              color: subtitleColor,
                             ),
                             const SizedBox(height: 16),
                             Text(
                               'No friends to add',
-                              style: TextStyle(color: Colors.grey.shade600),
+                              style: TextStyle(color: subtitleColor),
                             ),
                           ],
                         ),
@@ -518,15 +547,15 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                         final friend = availableFriends[index];
                         return ListTile(
                           leading: CircleAvatar(
-                            backgroundColor: const Color(0xFFE8DEF8),
+                            backgroundColor: avatarBgColor,
                             backgroundImage: friend.profilePic != null
                                 ? NetworkImage(friend.profilePic!)
                                 : null,
                             child: friend.profilePic == null
                                 ? Text(
                                     _getUserInitials(friend),
-                                    style: const TextStyle(
-                                      color: Color(0xFF6750A4),
+                                    style: TextStyle(
+                                      color: primaryColor,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   )
@@ -535,12 +564,13 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                           title: Text(
                             '${friend.firstname ?? ''} ${friend.lastname ?? ''}'
                                 .trim(),
+                            style: TextStyle(color: textColor),
                           ),
-                          subtitle: Text('@${friend.username ?? ''}'),
+                          subtitle: Text('@${friend.username ?? ''}', style: TextStyle(color: subtitleColor)),
                           trailing: IconButton(
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.add_circle,
-                              color: Color(0xFF6750A4),
+                              color: primaryColor,
                             ),
                             onPressed: () async {
                               final success = await groupProvider.addMember(

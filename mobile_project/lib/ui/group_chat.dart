@@ -161,14 +161,23 @@ class _GroupChatPageState extends State<GroupChatPage> {
   @override
   Widget build(BuildContext context) {
     final currentUserId = context.read<AuthProvider>().currentUser?.userId;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundColor = isDark ? const Color(0xFF121212) : const Color(0xFFF8F8F8);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey;
+    final inputFillColor = isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF5F5F5);
+    final avatarBgColor = isDark ? const Color(0xFF3D3D3D) : const Color(0xFFE8DEF8);
+    final primaryColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: cardColor,
         elevation: 1,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
@@ -183,15 +192,15 @@ class _GroupChatPageState extends State<GroupChatPage> {
                 children: [
                   CircleAvatar(
                     radius: 18,
-                    backgroundColor: const Color(0xFFE8DEF8),
+                    backgroundColor: avatarBgColor,
                     backgroundImage: group.image != null
                         ? NetworkImage(group.image!)
                         : null,
                     child: group.image == null
                         ? Text(
                             _getGroupInitials(group.name ?? 'G'),
-                            style: const TextStyle(
-                              color: Color(0xFF6750A4),
+                            style: TextStyle(
+                              color: primaryColor,
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                             ),
@@ -205,8 +214,8 @@ class _GroupChatPageState extends State<GroupChatPage> {
                       children: [
                         Text(
                           group.name ?? 'Group',
-                          style: const TextStyle(
-                            color: Colors.black,
+                          style: TextStyle(
+                            color: textColor,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -214,8 +223,8 @@ class _GroupChatPageState extends State<GroupChatPage> {
                         ),
                         Text(
                           '$memberCount members',
-                          style: const TextStyle(
-                            color: Colors.grey,
+                          style: TextStyle(
+                            color: subtitleColor,
                             fontSize: 12,
                           ),
                         ),
@@ -229,7 +238,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.black),
+            icon: Icon(Icons.more_vert, color: textColor),
             onPressed: () => _openGroupSettings(context),
           ),
         ],
@@ -345,7 +354,7 @@ class _GroupChatPageState extends State<GroupChatPage> {
               bottom: MediaQuery.of(context).padding.bottom + 8,
             ),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardColor,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.05),
@@ -357,9 +366,9 @@ class _GroupChatPageState extends State<GroupChatPage> {
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.location_on_outlined,
-                    color: Color(0xFF6750A4),
+                    color: primaryColor,
                   ),
                   onPressed: _shareLocation,
                 ),
@@ -367,17 +376,18 @@ class _GroupChatPageState extends State<GroupChatPage> {
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
+                      color: inputFillColor,
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: TextField(
                       controller: _messageController,
                       focusNode: _messageFocusNode,
-                      decoration: const InputDecoration(
+                      style: TextStyle(color: textColor),
+                      decoration: InputDecoration(
                         hintText: 'Type a message...',
-                        hintStyle: TextStyle(color: Colors.grey),
+                        hintStyle: TextStyle(color: subtitleColor),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
+                        contentPadding: const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 12,
                         ),

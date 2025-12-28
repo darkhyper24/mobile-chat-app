@@ -116,16 +116,24 @@ class _FriendsPageState extends State<FriendsPage>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundColor = isDark ? const Color(0xFF121212) : Colors.white;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey;
+    final inputFillColor = isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF5F5F5);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: backgroundColor,
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: const Text(
+        title: Text(
           'Friends',
           style: TextStyle(
-            color: Colors.black,
+            color: textColor,
             fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
@@ -144,15 +152,16 @@ class _FriendsPageState extends State<FriendsPage>
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: TextField(
               controller: _searchController,
+              style: TextStyle(color: textColor),
               decoration: InputDecoration(
                 hintText: 'Search friends...',
-                hintStyle: const TextStyle(color: Colors.grey),
+                hintStyle: TextStyle(color: subtitleColor),
                 filled: true,
-                fillColor: const Color(0xFFF5F5F5),
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                fillColor: inputFillColor,
+                prefixIcon: Icon(Icons.search, color: subtitleColor),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        icon: Icon(Icons.clear, color: subtitleColor),
                         onPressed: () {
                           _searchController.clear();
                           setState(() {
@@ -182,13 +191,13 @@ class _FriendsPageState extends State<FriendsPage>
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
+              color: inputFillColor,
               borderRadius: BorderRadius.circular(12),
             ),
             child: TabBar(
               controller: _tabController,
               indicator: BoxDecoration(
-                color: Colors.white,
+                color: cardColor,
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
@@ -200,8 +209,8 @@ class _FriendsPageState extends State<FriendsPage>
               ),
               indicatorSize: TabBarIndicatorSize.tab,
               dividerColor: Colors.transparent,
-              labelColor: Colors.black,
-              unselectedLabelColor: Colors.grey,
+              labelColor: textColor,
+              unselectedLabelColor: subtitleColor,
               labelStyle: const TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
@@ -272,12 +281,14 @@ class _FriendsPageState extends State<FriendsPage>
         currentIndex: 1, // Friends tab is selected
         onTap: _onNavItemTapped,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF6750A4),
+        selectedItemColor: isDark 
+            ? const Color(0xFFD0BCFF)
+            : const Color(0xFF6750A4),
         unselectedItemColor: Colors.grey,
         showSelectedLabels: true,
         showUnselectedLabels: true,
         enableFeedback: false,
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         elevation: 8,
         iconSize: 26,
         selectedFontSize: 12,
@@ -533,6 +544,15 @@ class _FriendListItemState extends State<_FriendListItem> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade200;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey;
+    final avatarBgColor = isDark ? const Color(0xFF3E3253) : const Color(0xFFE8DEF8);
+    final avatarTextColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
+
     return GestureDetector(
       onHorizontalDragUpdate: (details) {
         setState(() {
@@ -548,9 +568,9 @@ class _FriendListItemState extends State<_FriendListItem> {
         transform: Matrix4.translationValues(_offsetX, 0, 0),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: borderColor),
         ),
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(
@@ -561,15 +581,15 @@ class _FriendListItemState extends State<_FriendListItem> {
             children: [
               CircleAvatar(
                 radius: 24,
-                backgroundColor: const Color(0xFFE8DEF8),
+                backgroundColor: avatarBgColor,
                 backgroundImage: widget.friend.profilePic != null
                     ? NetworkImage(widget.friend.profilePic!)
                     : null,
                 child: widget.friend.profilePic == null
                     ? Text(
                         _getInitials(),
-                        style: const TextStyle(
-                          color: Color(0xFF6750A4),
+                        style: TextStyle(
+                          color: avatarTextColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
@@ -581,11 +601,11 @@ class _FriendListItemState extends State<_FriendListItem> {
           title: Text(
             '${widget.friend.firstname ?? ''} ${widget.friend.lastname ?? ''}'
                 .trim(),
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: textColor),
           ),
           subtitle: Text(
             '@${widget.friend.username ?? 'user'}',
-            style: const TextStyle(color: Colors.grey, fontSize: 14),
+            style: TextStyle(color: subtitleColor, fontSize: 14),
           ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
@@ -593,7 +613,7 @@ class _FriendListItemState extends State<_FriendListItem> {
               _AnimatedOutlinedButton(text: 'Message', onTap: widget.onMessage),
               const SizedBox(width: 4),
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, color: Colors.grey),
+                icon: Icon(Icons.more_vert, color: subtitleColor),
                 onSelected: (value) {
                   if (value == 'remove') {
                     widget.onRemove();
@@ -709,6 +729,15 @@ class _FriendRequestItemState extends State<_FriendRequestItem> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade200;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey;
+    final avatarBgColor = isDark ? const Color(0xFF3E3253) : const Color(0xFFE8DEF8);
+    final avatarTextColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
+
     return AnimatedOpacity(
       opacity: _isVisible ? 1.0 : 0.0,
       duration: const Duration(milliseconds: 200),
@@ -720,23 +749,23 @@ class _FriendRequestItemState extends State<_FriendRequestItem> {
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: cardColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: borderColor),
           ),
           child: Row(
             children: [
               CircleAvatar(
                 radius: 24,
-                backgroundColor: const Color(0xFFE8DEF8),
+                backgroundColor: avatarBgColor,
                 backgroundImage: widget.senderProfilePic != null
                     ? NetworkImage(widget.senderProfilePic!)
                     : null,
                 child: widget.senderProfilePic == null
                     ? Text(
                         _getInitials(),
-                        style: const TextStyle(
-                          color: Color(0xFF6750A4),
+                        style: TextStyle(
+                          color: avatarTextColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
@@ -752,16 +781,17 @@ class _FriendRequestItemState extends State<_FriendRequestItem> {
                       widget.senderName.isEmpty
                           ? 'Unknown User'
                           : widget.senderName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
+                        color: textColor,
                       ),
                     ),
                     if (widget.senderUsername.isNotEmpty)
                       Text(
                         '@${widget.senderUsername}',
-                        style: const TextStyle(
-                          color: Colors.grey,
+                        style: TextStyle(
+                          color: subtitleColor,
                           fontSize: 14,
                         ),
                       ),

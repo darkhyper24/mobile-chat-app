@@ -111,18 +111,26 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundColor = isDark ? const Color(0xFF121212) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
+    final avatarBgColor = isDark ? const Color(0xFF3D3D3D) : const Color(0xFFE8DEF8);
+    final primaryColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.black),
+          icon: Icon(Icons.close, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Create Group',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+          style: TextStyle(color: textColor, fontWeight: FontWeight.w600),
         ),
         actions: [
           TextButton(
@@ -154,19 +162,19 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 children: [
                   CircleAvatar(
                     radius: 50,
-                    backgroundColor: const Color(0xFFE8DEF8),
+                    backgroundColor: avatarBgColor,
                     backgroundImage: _selectedImageBytes != null
                         ? MemoryImage(_selectedImageBytes!)
                         : null,
                     child: _isUploadingImage
-                        ? const CircularProgressIndicator(
-                            color: Color(0xFF6750A4),
+                        ? CircularProgressIndicator(
+                            color: primaryColor,
                           )
                         : _selectedImageBytes == null
-                        ? const Icon(
+                        ? Icon(
                             Icons.group,
                             size: 40,
-                            color: Color(0xFF6750A4),
+                            color: primaryColor,
                           )
                         : null,
                   ),
@@ -240,14 +248,14 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             const SizedBox(height: 24),
 
             // Add Members Section
-            const Text(
+            Text(
               'Add Members',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: textColor),
             ),
             const SizedBox(height: 8),
             Text(
               'Select friends to add to the group',
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 14, color: subtitleColor),
             ),
             const SizedBox(height: 16),
 
@@ -263,21 +271,23 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     runSpacing: 8,
                     children: selectedFriends.map((friend) {
                       return Chip(
+                        backgroundColor: isDark ? const Color(0xFF2D2D2D) : null,
                         avatar: CircleAvatar(
-                          backgroundColor: const Color(0xFFE8DEF8),
+                          backgroundColor: avatarBgColor,
                           backgroundImage: friend.profilePic != null
                               ? NetworkImage(friend.profilePic!)
                               : null,
                           child: friend.profilePic == null
                               ? Text(
                                   _getInitials(friend),
-                                  style: const TextStyle(fontSize: 10),
+                                  style: TextStyle(fontSize: 10, color: primaryColor),
                                 )
                               : null,
                         ),
                         label: Text(
                           '${friend.firstname ?? ''} ${friend.lastname ?? ''}'
                               .trim(),
+                          style: TextStyle(color: textColor),
                         ),
                         deleteIcon: const Icon(Icons.close, size: 18),
                         onDeleted: () {
@@ -331,15 +341,15 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
                     return ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: const Color(0xFFE8DEF8),
+                        backgroundColor: avatarBgColor,
                         backgroundImage: friend.profilePic != null
                             ? NetworkImage(friend.profilePic!)
                             : null,
                         child: friend.profilePic == null
                             ? Text(
                                 _getInitials(friend),
-                                style: const TextStyle(
-                                  color: Color(0xFF6750A4),
+                                style: TextStyle(
+                                  color: primaryColor,
                                   fontWeight: FontWeight.bold,
                                 ),
                               )
@@ -348,8 +358,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                       title: Text(
                         '${friend.firstname ?? ''} ${friend.lastname ?? ''}'
                             .trim(),
+                        style: TextStyle(color: textColor),
                       ),
-                      subtitle: Text('@${friend.username ?? ''}'),
+                      subtitle: Text('@${friend.username ?? ''}', style: TextStyle(color: subtitleColor)),
                       trailing: Checkbox(
                         value: isSelected,
                         onChanged: (value) {

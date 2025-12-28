@@ -18,10 +18,17 @@ class UserProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundColor = isDark ? const Color(0xFF121212) : Colors.white;
+    final primaryColor = const Color(0xFF6750A4);
+    final avatarBgColor = isDark ? const Color(0xFF3E3253) : Colors.white;
+    final avatarTextColor = isDark ? const Color(0xFFD0BCFF) : primaryColor;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF6750A4),
+        backgroundColor: primaryColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -43,24 +50,24 @@ class UserProfilePage extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.only(bottom: 24),
-              decoration: const BoxDecoration(color: Color(0xFF6750A4)),
+              decoration: BoxDecoration(color: primaryColor),
               child: Column(
                 children: [
                   const SizedBox(height: 16),
                   // Profile Picture
                   CircleAvatar(
                     radius: 60,
-                    backgroundColor: Colors.white,
+                    backgroundColor: avatarBgColor,
                     backgroundImage: user.profilePic != null
                         ? NetworkImage(user.profilePic!)
                         : null,
                     child: user.profilePic == null
                         ? Text(
                             _getInitials(user),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 40,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF6750A4),
+                              color: avatarTextColor,
                             ),
                           )
                         : null,
@@ -98,6 +105,7 @@ class UserProfilePage extends StatelessWidget {
                 children: [
                   // Name Field
                   _buildReadOnlyField(
+                    context: context,
                     icon: Icons.person,
                     label: 'First Name',
                     value: user.firstname ?? 'Not set',
@@ -106,6 +114,7 @@ class UserProfilePage extends StatelessWidget {
 
                   // Last Name Field
                   _buildReadOnlyField(
+                    context: context,
                     icon: Icons.person_outline,
                     label: 'Last Name',
                     value: user.lastname ?? 'Not set',
@@ -114,6 +123,7 @@ class UserProfilePage extends StatelessWidget {
 
                   // Username Field
                   _buildReadOnlyField(
+                    context: context,
                     icon: Icons.alternate_email,
                     label: 'Username',
                     value: user.username ?? 'Not set',
@@ -122,6 +132,7 @@ class UserProfilePage extends StatelessWidget {
 
                   // About/Bio Field
                   _buildReadOnlyField(
+                    context: context,
                     icon: Icons.info_outline,
                     label: 'About',
                     value: (user.bio != null && user.bio!.isNotEmpty)
@@ -132,6 +143,7 @@ class UserProfilePage extends StatelessWidget {
 
                   // Phone Field
                   _buildReadOnlyField(
+                    context: context,
                     icon: Icons.phone,
                     label: 'Phone',
                     value: user.phoneNumber ?? 'Not set',
@@ -146,21 +158,30 @@ class UserProfilePage extends StatelessWidget {
   }
 
   Widget _buildReadOnlyField({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required String value,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
+    final labelColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final primaryColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
+    
     final isNotSet = value == 'Not set';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF6750A4), size: 24),
+          Icon(icon, color: primaryColor, size: 24),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -168,7 +189,7 @@ class UserProfilePage extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 12, color: labelColor),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -176,7 +197,7 @@ class UserProfilePage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: isNotSet ? Colors.grey.shade400 : Colors.black,
+                    color: isNotSet ? Colors.grey.shade400 : textColor,
                   ),
                 ),
               ],

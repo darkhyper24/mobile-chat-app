@@ -188,7 +188,9 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark 
+          ? const Color(0xFF121212) 
+          : Colors.white,
       appBar: AppBar(
         backgroundColor: const Color(0xFF6750A4),
         elevation: 0,
@@ -323,12 +325,16 @@ class _ProfilePageState extends State<ProfilePage> {
         currentIndex: _selectedIndex,
         onTap: _onNavItemTapped,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF6750A4),
+        selectedItemColor: Theme.of(context).brightness == Brightness.dark 
+            ? const Color(0xFFD0BCFF)
+            : const Color(0xFF6750A4),
         unselectedItemColor: Colors.grey,
         showSelectedLabels: true,
         showUnselectedLabels: true,
         enableFeedback: false,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark 
+            ? const Color(0xFF1E1E1E) 
+            : Colors.white,
         elevation: 8,
         iconSize: 26,
         selectedFontSize: 12,
@@ -471,16 +477,22 @@ class _AnimatedProfileFieldState extends State<_AnimatedProfileField> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
+    final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: widget.isEditing
               ? const Color(0xFF6750A4)
-              : Colors.grey.shade300,
+              : borderColor,
           width: widget.isEditing ? 2 : 1,
         ),
       ),
@@ -488,7 +500,7 @@ class _AnimatedProfileFieldState extends State<_AnimatedProfileField> {
         children: [
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            child: Icon(widget.icon, color: const Color(0xFF6750A4), size: 24),
+            child: Icon(widget.icon, color: isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4), size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -497,7 +509,7 @@ class _AnimatedProfileFieldState extends State<_AnimatedProfileField> {
               children: [
                 Text(
                   widget.label,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 12, color: subtitleColor),
                 ),
                 const SizedBox(height: 4),
                 AnimatedSwitcher(
@@ -511,9 +523,10 @@ class _AnimatedProfileFieldState extends State<_AnimatedProfileField> {
                           controller: widget.controller,
                           autofocus: true,
                           keyboardType: widget.keyboardType,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
+                            color: textColor,
                           ),
                           decoration: const InputDecoration(
                             border: InputBorder.none,
@@ -530,8 +543,8 @@ class _AnimatedProfileFieldState extends State<_AnimatedProfileField> {
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                             color: widget.controller.text.isEmpty
-                                ? Colors.grey.shade400
-                                : Colors.black,
+                                ? subtitleColor
+                                : textColor,
                           ),
                         ),
                 ),
@@ -564,7 +577,7 @@ class _AnimatedProfileFieldState extends State<_AnimatedProfileField> {
                   padding: const EdgeInsets.all(8),
                   child: Icon(
                     widget.isEditing ? Icons.check : Icons.edit,
-                    color: const Color(0xFF6750A4),
+                    color: isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4),
                     size: 20,
                   ),
                 ),

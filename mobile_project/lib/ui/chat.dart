@@ -186,14 +186,21 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     final currentUserId = context.read<AuthProvider>().currentUser?.userId;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundColor = isDark ? const Color(0xFF121212) : const Color(0xFFF8F8F8);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey;
+    final inputFillColor = isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF5F5F5);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: cardColor,
         elevation: 1,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
@@ -203,15 +210,19 @@ class _ChatPageState extends State<ChatPage> {
               tag: 'avatar_${widget.partner.userId}',
               child: CircleAvatar(
                 radius: 18,
-                backgroundColor: const Color(0xFFE8DEF8),
+                backgroundColor: isDark 
+                    ? const Color(0xFF3D3D3D)
+                    : const Color(0xFFE8DEF8),
                 backgroundImage: widget.partner.profilePic != null
                     ? NetworkImage(widget.partner.profilePic!)
                     : null,
                 child: widget.partner.profilePic == null
                     ? Text(
                         _getInitials(widget.partner),
-                        style: const TextStyle(
-                          color: Color(0xFF6750A4),
+                        style: TextStyle(
+                          color: isDark 
+                              ? const Color(0xFFD0BCFF)
+                              : const Color(0xFF6750A4),
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -227,8 +238,8 @@ class _ChatPageState extends State<ChatPage> {
                   Text(
                     '${widget.partner.firstname ?? ''} ${widget.partner.lastname ?? ''}'
                         .trim(),
-                    style: const TextStyle(
-                      color: Colors.black,
+                    style: TextStyle(
+                      color: textColor,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -236,7 +247,7 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                   Text(
                     '@${widget.partner.username ?? 'user'}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    style: TextStyle(color: subtitleColor, fontSize: 12),
                   ),
                 ],
               ),
@@ -245,7 +256,7 @@ class _ChatPageState extends State<ChatPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.black),
+            icon: Icon(Icons.more_vert, color: textColor),
             onPressed: () {
               showModalBottomSheet(
                 context: context,
@@ -362,7 +373,7 @@ class _ChatPageState extends State<ChatPage> {
               bottom: MediaQuery.of(context).padding.bottom + 8,
             ),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardColor,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.05),
@@ -384,17 +395,18 @@ class _ChatPageState extends State<ChatPage> {
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
+                      color: inputFillColor,
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: TextField(
                       controller: _messageController,
                       focusNode: _messageFocusNode,
-                      decoration: const InputDecoration(
+                      style: TextStyle(color: textColor),
+                      decoration: InputDecoration(
                         hintText: 'Type a message...',
-                        hintStyle: TextStyle(color: Colors.grey),
+                        hintStyle: TextStyle(color: subtitleColor),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
+                        contentPadding: const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 12,
                         ),

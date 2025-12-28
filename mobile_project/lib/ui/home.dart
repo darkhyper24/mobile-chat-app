@@ -161,11 +161,18 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.currentUser;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundColor = isDark ? const Color(0xFF121212) : Colors.white;
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey;
+    final dividerColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: backgroundColor,
         elevation: 0,
         leading: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
@@ -175,7 +182,7 @@ class _HomePageState extends State<HomePage> {
           child: _isSearching
               ? IconButton(
                   key: const ValueKey('BackBtn'),
-                  icon: const Icon(Icons.arrow_back, color: Colors.black),
+                  icon: Icon(Icons.arrow_back, color: textColor),
                   onPressed: _toggleSearch,
                 )
               : GestureDetector(
@@ -193,7 +200,9 @@ class _HomePageState extends State<HomePage> {
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: CircleAvatar(
-                      backgroundColor: const Color(0xFFE8DEF8),
+                      backgroundColor: isDark 
+                          ? const Color(0xFF3D3D3D)
+                          : const Color(0xFFE8DEF8),
                       backgroundImage: user?.profilePic != null
                           ? NetworkImage(user!.profilePic!)
                           : null,
@@ -201,8 +210,10 @@ class _HomePageState extends State<HomePage> {
                           ? Text(
                               user?.firstname?.substring(0, 1).toUpperCase() ??
                                   'U',
-                              style: const TextStyle(
-                                color: Color(0xFF6750A4),
+                              style: TextStyle(
+                                color: isDark 
+                                    ? const Color(0xFFD0BCFF)
+                                    : const Color(0xFF6750A4),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
                               ),
@@ -227,25 +238,25 @@ class _HomePageState extends State<HomePage> {
                   controller: _searchController,
                   focusNode: _searchFocusNode,
                   autofocus: true,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Search...',
                     border: InputBorder.none,
-                    hintStyle: TextStyle(color: Colors.grey),
+                    hintStyle: TextStyle(color: subtitleColor),
                   ),
-                  style: const TextStyle(color: Colors.black, fontSize: 18),
+                  style: TextStyle(color: textColor, fontSize: 18),
                   onChanged: (value) {
                     setState(() {
                       _searchQuery = value;
                     });
                   },
                 )
-              : const Align(
+              : Align(
                   alignment: Alignment.centerLeft,
-                  key: ValueKey('Title'),
+                  key: const ValueKey('Title'),
                   child: Text(
                     'ZC Chat App',
                     style: TextStyle(
-                      color: Colors.black,
+                      color: textColor,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
@@ -255,7 +266,7 @@ class _HomePageState extends State<HomePage> {
         actions: [
           AnimatedCrossFade(
             firstChild: IconButton(
-              icon: const Icon(Icons.search, color: Colors.black),
+              icon: Icon(Icons.search, color: textColor),
               onPressed: _toggleSearch,
             ),
             secondChild: const SizedBox.shrink(),
@@ -304,12 +315,14 @@ class _HomePageState extends State<HomePage> {
         currentIndex: _selectedIndex,
         onTap: _onNavItemTapped,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF6750A4),
+        selectedItemColor: isDark 
+            ? const Color(0xFFD0BCFF)
+            : const Color(0xFF6750A4),
         unselectedItemColor: Colors.grey,
         showSelectedLabels: true,
         showUnselectedLabels: true,
         enableFeedback: false,
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         elevation: 8,
         iconSize: 26,
         selectedFontSize: 12,
@@ -368,28 +381,36 @@ class _HomePageState extends State<HomePage> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Friends',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pushNamed(context, '/friends'),
-                    child: const Text(
-                      'See all',
-                      style: TextStyle(
-                        color: Color(0xFF6750A4),
-                        fontWeight: FontWeight.w500,
+              child: Builder(
+                builder: (context) {
+                  final theme = Theme.of(context);
+                  final isDark = theme.brightness == Brightness.dark;
+                  final textColor = isDark ? Colors.white : Colors.black87;
+                  final accentColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Friends',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: textColor,
+                        ),
                       ),
-                    ),
-                  ),
-                ],
+                      TextButton(
+                        onPressed: () => Navigator.pushNamed(context, '/friends'),
+                        child: Text(
+                          'See all',
+                          style: TextStyle(
+                            color: accentColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
             SizedBox(
@@ -469,16 +490,23 @@ class _HomePageState extends State<HomePage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                'Messages',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
+            Builder(
+              builder: (context) {
+                final theme = Theme.of(context);
+                final isDark = theme.brightness == Brightness.dark;
+                final textColor = isDark ? Colors.white : Colors.black87;
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Text(
+                    'Messages',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: textColor,
+                    ),
+                  ),
+                );
+              },
             ),
             ListView.builder(
               shrinkWrap: true,
@@ -601,16 +629,23 @@ class _HomePageState extends State<HomePage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                'Group Chats',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
+            Builder(
+              builder: (context) {
+                final theme = Theme.of(context);
+                final isDark = theme.brightness == Brightness.dark;
+                final textColor = isDark ? Colors.white : Colors.black87;
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Text(
+                    'Group Chats',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: textColor,
+                    ),
+                  ),
+                );
+              },
             ),
             ListView.builder(
               shrinkWrap: true,
@@ -739,6 +774,12 @@ class _AnimatedFriendAvatarState extends State<_AnimatedFriendAvatar> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final avatarBgColor = isDark ? const Color(0xFF3E3253) : const Color(0xFFE8DEF8);
+    final avatarTextColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
+    final textColor = isDark ? Colors.white : Colors.black;
+
     return GestureDetector(
       onTapDown: (_) => setState(() => _scale = 0.9),
       onTapUp: (_) {
@@ -759,15 +800,15 @@ class _AnimatedFriendAvatarState extends State<_AnimatedFriendAvatar> {
                 children: [
                   CircleAvatar(
                     radius: 28,
-                    backgroundColor: const Color(0xFFE8DEF8),
+                    backgroundColor: avatarBgColor,
                     backgroundImage: widget.friend.profilePic != null
                         ? NetworkImage(widget.friend.profilePic!)
                         : null,
                     child: widget.friend.profilePic == null
                         ? Text(
                             widget.getInitials(widget.friend),
-                            style: const TextStyle(
-                              color: Color(0xFF6750A4),
+                            style: TextStyle(
+                              color: avatarTextColor,
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
@@ -779,9 +820,10 @@ class _AnimatedFriendAvatarState extends State<_AnimatedFriendAvatar> {
               const SizedBox(height: 6),
               Text(
                 widget.friend.firstname ?? 'User',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
+                  color: textColor,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -859,6 +901,12 @@ class _AnimatedConversationItemState extends State<_AnimatedConversationItem> {
   Widget build(BuildContext context) {
     final participant = widget.conversation.participant;
     final lastMessage = widget.conversation.lastMessage;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final avatarBgColor = isDark ? const Color(0xFF3E3253) : const Color(0xFFE8DEF8);
+    final avatarTextColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
 
     return GestureDetector(
       onTapDown: _onTapDown,
@@ -885,7 +933,7 @@ class _AnimatedConversationItemState extends State<_AnimatedConversationItem> {
               child: Stack(
                 children: [
                   CircleAvatar(
-                    backgroundColor: const Color(0xFFE8DEF8),
+                    backgroundColor: avatarBgColor,
                     radius: 28,
                     backgroundImage: participant.profilePic != null
                         ? NetworkImage(participant.profilePic!)
@@ -893,8 +941,8 @@ class _AnimatedConversationItemState extends State<_AnimatedConversationItem> {
                     child: participant.profilePic == null
                         ? Text(
                             widget.getInitials(participant),
-                            style: const TextStyle(
-                              color: Color(0xFF6750A4),
+                            style: TextStyle(
+                              color: avatarTextColor,
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
@@ -907,7 +955,7 @@ class _AnimatedConversationItemState extends State<_AnimatedConversationItem> {
             title: Text(
               '${participant.firstname ?? ''} ${participant.lastname ?? ''}'
                   .trim(),
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: textColor),
             ),
             subtitle: Row(
               children: [
@@ -916,7 +964,7 @@ class _AnimatedConversationItemState extends State<_AnimatedConversationItem> {
                     lastMessage.message ?? '',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    style: TextStyle(color: subtitleColor, fontSize: 14),
                   ),
                 ),
               ],
@@ -990,6 +1038,12 @@ class _AnimatedGroupItemState extends State<_AnimatedGroupItem> {
   Widget build(BuildContext context) {
     final group = widget.groupConv.group;
     final lastMessage = widget.groupConv.lastMessage;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final avatarBgColor = isDark ? const Color(0xFF3E3253) : const Color(0xFFE8DEF8);
+    final avatarTextColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey.shade500;
 
     return GestureDetector(
       onTapDown: (_) => setState(() {
@@ -1022,7 +1076,7 @@ class _AnimatedGroupItemState extends State<_AnimatedGroupItem> {
             leading: Hero(
               tag: 'group_${group.groupId}',
               child: CircleAvatar(
-                backgroundColor: const Color(0xFFE8DEF8),
+                backgroundColor: avatarBgColor,
                 radius: 28,
                 backgroundImage: group.image != null
                     ? NetworkImage(group.image!)
@@ -1030,8 +1084,8 @@ class _AnimatedGroupItemState extends State<_AnimatedGroupItem> {
                 child: group.image == null
                     ? Text(
                         widget.getGroupInitials(group.name),
-                        style: const TextStyle(
-                          color: Color(0xFF6750A4),
+                        style: TextStyle(
+                          color: avatarTextColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
@@ -1041,25 +1095,25 @@ class _AnimatedGroupItemState extends State<_AnimatedGroupItem> {
             ),
             title: Text(
               group.name ?? 'Group',
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: textColor),
             ),
             subtitle: Row(
               children: [
-                Icon(Icons.group, size: 14, color: Colors.grey.shade500),
+                Icon(Icons.group, size: 14, color: subtitleColor),
                 const SizedBox(width: 4),
                 Text(
                   '${widget.groupConv.memberCount} members',
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                  style: TextStyle(color: subtitleColor, fontSize: 12),
                 ),
                 if (lastMessage != null) ...[
-                  Text(' • ', style: TextStyle(color: Colors.grey.shade500)),
+                  Text(' • ', style: TextStyle(color: subtitleColor)),
                   Expanded(
                     child: Text(
                       lastMessage.message ?? '',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color: subtitleColor,
                         fontSize: 14,
                       ),
                     ),

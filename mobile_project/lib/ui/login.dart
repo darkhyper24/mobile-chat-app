@@ -70,8 +70,15 @@ class _LoginPageState extends State<LoginPage>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundColor = isDark ? const Color(0xFF121212) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey;
+    final inputFillColor = isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF5F5F5);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -101,13 +108,17 @@ class _LoginPageState extends State<LoginPage>
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE8DEF8),
+                            color: isDark 
+                                ? const Color(0xFF3D3D3D)
+                                : const Color(0xFFE8DEF8),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.chat_bubble,
                             size: 40,
-                            color: Color(0xFF6750A4),
+                            color: isDark 
+                                ? const Color(0xFFD0BCFF)
+                                : const Color(0xFF6750A4),
                           ),
                         ),
                       ),
@@ -123,12 +134,12 @@ class _LoginPageState extends State<LoginPage>
                       offset: _isVisible ? Offset.zero : const Offset(0, 0.3),
                       duration: const Duration(milliseconds: 500),
                       curve: Curves.easeOutCubic,
-                      child: const Text(
+                      child: Text(
                         'ZC Chat',
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          color: textColor,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -140,9 +151,9 @@ class _LoginPageState extends State<LoginPage>
                   AnimatedOpacity(
                     opacity: _isVisible ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 600),
-                    child: const Text(
+                    child: Text(
                       'Welcome back',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      style: TextStyle(fontSize: 16, color: subtitleColor),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -159,22 +170,24 @@ class _LoginPageState extends State<LoginPage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Email',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: Colors.black87,
+                              color: textColor.withOpacity(0.87),
                             ),
                           ),
                           const SizedBox(height: 8),
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
+                            style: TextStyle(color: textColor),
                             decoration: InputDecoration(
                               hintText: 'you@example.com',
+                              hintStyle: TextStyle(color: subtitleColor),
                               filled: true,
-                              fillColor: const Color(0xFFF5F5F5),
+                              fillColor: inputFillColor,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide.none,
@@ -211,22 +224,24 @@ class _LoginPageState extends State<LoginPage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Password',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: Colors.black87,
+                              color: textColor.withOpacity(0.87),
                             ),
                           ),
                           const SizedBox(height: 8),
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
+                            style: TextStyle(color: textColor),
                             decoration: InputDecoration(
                               hintText: '••••••••',
+                              hintStyle: TextStyle(color: subtitleColor),
                               filled: true,
-                              fillColor: const Color(0xFFF5F5F5),
+                              fillColor: inputFillColor,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide.none,
@@ -340,17 +355,17 @@ class _LoginPageState extends State<LoginPage>
                   AnimatedOpacity(
                     opacity: _isVisible ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 900),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Expanded(child: Divider(color: Colors.grey)),
+                        Expanded(child: Divider(color: subtitleColor)),
                         Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
                             "Don't have an account?",
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(color: subtitleColor),
                           ),
                         ),
-                        Expanded(child: Divider(color: Colors.grey)),
+                        Expanded(child: Divider(color: subtitleColor)),
                       ],
                     ),
                   ),
