@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import '../database/db.dart';
@@ -56,12 +55,23 @@ class UserService {
   // Upload profile picture to Supabase storage
   Future<String?> uploadProfilePicture({
     required String userId,
-    required String imagePath,
+    required XFile imageFile,
   }) async {
     try {
-      final file = File(imagePath);
-      final bytes = await file.readAsBytes();
-      final fileExt = imagePath.split('.').last.toLowerCase();
+      final bytes = await imageFile.readAsBytes();
+
+      // Get file extension - handle cross-platform
+      String fileExt = 'jpg'; // Default fallback
+      if (imageFile.mimeType != null) {
+        // Extract extension from mime type (e.g., 'image/jpeg' -> 'jpeg')
+        final mimeExt = imageFile.mimeType!.split('/').last;
+        fileExt = mimeExt == 'jpeg' ? 'jpg' : mimeExt;
+      } else if (imageFile.name.contains('.')) {
+        fileExt = imageFile.name.split('.').last.toLowerCase();
+      } else if (imageFile.path.contains('.')) {
+        fileExt = imageFile.path.split('.').last.toLowerCase();
+      }
+
       final fileName =
           '$userId-${DateTime.now().millisecondsSinceEpoch}.$fileExt';
       final filePath = '$userId/$fileName';
@@ -80,13 +90,13 @@ class UserService {
       }
 
       // Upload to Supabase storage bucket 'images'
-      final uploadResponse = await _client.storage
+      await _client.storage
           .from('images')
           .uploadBinary(
             filePath,
             bytes,
             fileOptions: FileOptions(
-              contentType: 'image/$fileExt',
+              contentType: imageFile.mimeType ?? 'image/$fileExt',
               upsert: true,
             ),
           );
@@ -116,7 +126,7 @@ class UserService {
           .select()
           .eq('user_id', userId)
           .single();
-      
+
       return response;
     } catch (e) {
       throw Exception('Failed to get user profile: $e');

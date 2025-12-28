@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import '../database/db.dart';
 import '../models/group.dart';
 import '../models/group_members.dart';
-import '../models/massages.dart';
+import '../models/messages.dart';
 import '../models/users.dart' as models;
 
 /// Represents a group conversation with its latest message and member count
@@ -27,8 +28,9 @@ class GroupService {
   GroupService._internal();
 
   final _db = DatabaseService();
+  final ImagePicker _picker = ImagePicker();
 
-  // Realtime subscription channels
+  // Realtime subscription channels for broadcast messaging
   RealtimeChannel? _groupMessagesChannel;
   RealtimeChannel? _groupMembersChannel;
 
@@ -39,6 +41,11 @@ class GroupService {
   Stream<Message> get newGroupMessageStream =>
       _newGroupMessageController.stream;
   Stream<GroupMember> get memberChangeStream => _memberChangeController.stream;
+
+  /// Build group topic for broadcast messages - all group members subscribe to this
+  String _groupTopic(String groupId) {
+    return 'group:$groupId:messages';
+  }
 
   // ==================== GROUP CRUD OPERATIONS ====================
 
@@ -119,6 +126,90 @@ class GroupService {
     }
   }
 
+  /// Pick image from gallery
+  Future<XFile?> pickImageFromGallery() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      return image;
+    } catch (e) {
+      throw Exception('Failed to pick image: $e');
+    }
+  }
+
+  /// Upload group image to Supabase storage
+  Future<String?> uploadGroupImage({
+    required String groupId,
+    required XFile imageFile,
+  }) async {
+    try {
+      final bytes = await imageFile.readAsBytes();
+
+      // Get file extension - handle cross-platform
+      String fileExt = 'jpg'; // Default fallback
+      if (imageFile.mimeType != null) {
+        // Extract extension from mime type (e.g., 'image/jpeg' -> 'jpeg')
+        final mimeExt = imageFile.mimeType!.split('/').last;
+        fileExt = mimeExt == 'jpeg' ? 'jpg' : mimeExt;
+      } else if (imageFile.name.contains('.')) {
+        fileExt = imageFile.name.split('.').last.toLowerCase();
+      } else if (imageFile.path.contains('.')) {
+        fileExt = imageFile.path.split('.').last.toLowerCase();
+      }
+
+      final fileName =
+          'group-$groupId-${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final filePath = 'groups/$groupId/$fileName';
+
+      // Delete old group image if exists
+      try {
+        final existingFiles = await _db.client.storage
+            .from('images')
+            .list(path: 'groups/$groupId');
+
+        for (var file in existingFiles) {
+          await _db.client.storage.from('images').remove([
+            'groups/$groupId/${file.name}',
+          ]);
+        }
+      } catch (e) {
+        // Ignore errors when deleting old files
+      }
+
+      // Upload to Supabase storage bucket 'images'
+      await _db.client.storage
+          .from('images')
+          .uploadBinary(
+            filePath,
+            bytes,
+            fileOptions: FileOptions(
+              contentType: imageFile.mimeType ?? 'image/$fileExt',
+              upsert: true,
+            ),
+          );
+
+      // Get public URL
+      final publicUrl = _db.client.storage
+          .from('images')
+          .getPublicUrl(filePath);
+
+      // Update group's image in database
+      await _db.client
+          .from('group')
+          .update({'image': publicUrl})
+          .eq('group_id', groupId);
+
+      return publicUrl;
+    } catch (e) {
+      print('Error uploading group image: $e');
+      throw Exception('Failed to upload group image: $e');
+    }
+  }
+
   /// Delete a group (only admins can do this)
   Future<void> deleteGroup(String groupId) async {
     try {
@@ -128,7 +219,7 @@ class GroupService {
       // Note: We don't delete messages due to Supabase replica identity limitations
       // Messages will be orphaned but won't be visible since the group is deleted
       // To properly delete messages, run this SQL in Supabase:
-      // ALTER TABLE massages REPLICA IDENTITY FULL;
+      // ALTER TABLE messages REPLICA IDENTITY FULL;
 
       // Delete the group
       await _db.client.from('group').delete().eq('group_id', groupId);
@@ -171,7 +262,7 @@ class GroupService {
       for (final group in groups) {
         // Get latest message
         final messagesResponse = await _db.client
-            .from('massages')
+            .from('messages')
             .select()
             .eq('group_id', group.groupId)
             .order('created_at', ascending: false)
@@ -398,7 +489,7 @@ class GroupService {
     DateTime? before,
   }) async {
     try {
-      var query = _db.client.from('massages').select().eq('group_id', groupId);
+      var query = _db.client.from('messages').select().eq('group_id', groupId);
 
       if (before != null) {
         query = query.lt('created_at', before.toIso8601String());
@@ -419,7 +510,7 @@ class GroupService {
     }
   }
 
-  /// Send a message to a group
+  /// Send a message to a group (inserts to DB and broadcasts via channel)
   Future<Message?> sendGroupMessage({
     required String senderId,
     required String groupId,
@@ -427,71 +518,109 @@ class GroupService {
     String? image,
   }) async {
     try {
+      // Insert message to database first (canonical storage)
       final response = await _db.client
-          .from('massages')
+          .from('messages')
           .insert({
             'sender_id': senderId,
             'group_id': groupId,
-            'massage': text,
+            'message': text,
             'image': image,
           })
           .select()
           .single();
 
-      return Message.fromJson(response);
+      final message = Message.fromJson(response);
+
+      // Broadcast the message via the group channel if subscribed
+      // This notifies all other group members who are subscribed
+      if (_groupMessagesChannel != null) {
+        _broadcastGroupMessage(
+          channel: _groupMessagesChannel!,
+          message: message,
+        );
+      }
+
+      return message;
     } catch (e) {
       print('Error sending group message: $e');
       rethrow;
     }
   }
 
+  /// Broadcast a message via channel.send (WebSocket broadcast)
+  void _broadcastGroupMessage({
+    required RealtimeChannel channel,
+    required Message message,
+  }) {
+    channel.sendBroadcastMessage(
+      event: 'group_message',
+      payload: {
+        'message_id': message.messageId,
+        'message': message.message,
+        'sender_id': message.senderId,
+        'receiver_id': message.receiverId,
+        'group_id': message.groupId,
+        'image': message.image,
+        'created_at': message.createdAt?.toIso8601String(),
+      },
+    );
+  }
+
   // ==================== REALTIME SUBSCRIPTIONS ====================
 
-  /// Subscribe to real-time messages for a specific group
-  void subscribeToGroupMessages({
+  /// Subscribe to real-time messages for a specific group using broadcast
+  /// All group members subscribe to the same channel topic
+  RealtimeChannel subscribeToGroupMessages({
     required String groupId,
     required Function(Message) onNewMessage,
   }) {
     // Unsubscribe from previous channel if exists
-    _groupMessagesChannel?.unsubscribe();
+    _unsubscribeGroupMessages();
 
-    _groupMessagesChannel = _db.client
-        .channel('group-messages:$groupId')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
-          schema: 'public',
-          table: 'massages',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'group_id',
-            value: groupId,
-          ),
-          callback: (payload) {
-            try {
-              final newMessage = Message.fromJson(payload.newRecord);
-              onNewMessage(newMessage);
-              _newGroupMessageController.add(newMessage);
-            } catch (e) {
-              print('Error processing realtime group message: $e');
-            }
-          },
-        )
-        .subscribe((status, [error]) {
-          print('Group messages subscription status: $status');
-          if (error != null) {
-            print('Subscription error: $error');
+    final topic = _groupTopic(groupId);
+    final channel = _db.client.channel(
+      topic,
+      opts: const RealtimeChannelConfig(private: true),
+    );
+
+    channel.onBroadcast(
+      event: 'group_message',
+      callback: (payload) {
+        try {
+          final newMessage = Message.fromJson(payload);
+
+          // Only process if this message belongs to this group
+          if (newMessage.groupId == groupId) {
+            onNewMessage(newMessage);
+            _newGroupMessageController.add(newMessage);
           }
-        });
+        } catch (e) {
+          print('Error processing realtime group message: $e');
+        }
+      },
+    );
+
+    channel.subscribe((status, [error]) {
+      if (status == RealtimeSubscribeStatus.subscribed) {
+        print('Subscribed to group channel: $topic');
+      } else {
+        print('Group channel status: $status ${error ?? ''}');
+      }
+    });
+
+    _groupMessagesChannel = channel;
+    return channel;
   }
 
-  /// Subscribe to member changes in a group
-  void subscribeToGroupMembers({
+  /// Subscribe to member changes in a group (still uses Postgres changes for member events)
+  RealtimeChannel subscribeToGroupMembers({
     required String groupId,
     required Function(String event, GroupMember? member) onMemberChange,
   }) {
-    _groupMembersChannel?.unsubscribe();
+    _unsubscribeGroupMembers();
 
-    _groupMembersChannel = _db.client
+    final channel = _db.client
         .channel('group-members:$groupId')
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
@@ -515,23 +644,41 @@ class GroupService {
           },
         )
         .subscribe((status, [error]) {
-          print('Group members subscription status: $status');
-          if (error != null) {
-            print('Subscription error: $error');
+          if (status == RealtimeSubscribeStatus.subscribed) {
+            print('Subscribed to group members: group-members:$groupId');
+          } else {
+            print('Group members channel status: $status ${error ?? ''}');
           }
         });
+
+    _groupMembersChannel = channel;
+    return channel;
   }
 
   /// Unsubscribe from group messages channel
-  void unsubscribeFromGroupMessages() {
-    _groupMessagesChannel?.unsubscribe();
-    _groupMessagesChannel = null;
+  void _unsubscribeGroupMessages() {
+    if (_groupMessagesChannel != null) {
+      _db.client.removeChannel(_groupMessagesChannel!);
+      _groupMessagesChannel = null;
+    }
   }
 
   /// Unsubscribe from group members channel
+  void _unsubscribeGroupMembers() {
+    if (_groupMembersChannel != null) {
+      _db.client.removeChannel(_groupMembersChannel!);
+      _groupMembersChannel = null;
+    }
+  }
+
+  /// Unsubscribe from group messages channel (public API)
+  void unsubscribeFromGroupMessages() {
+    _unsubscribeGroupMessages();
+  }
+
+  /// Unsubscribe from group members channel (public API)
   void unsubscribeFromGroupMembers() {
-    _groupMembersChannel?.unsubscribe();
-    _groupMembersChannel = null;
+    _unsubscribeGroupMembers();
   }
 
   /// Unsubscribe from all real-time updates
@@ -546,4 +693,7 @@ class GroupService {
     _newGroupMessageController.close();
     _memberChangeController.close();
   }
+
+  /// Get the current group messages channel (for sending messages after subscription)
+  RealtimeChannel? get groupMessagesChannel => _groupMessagesChannel;
 }

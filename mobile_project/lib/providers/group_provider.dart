@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/group_service.dart';
 import '../models/group.dart';
 import '../models/group_members.dart';
-import '../models/massages.dart';
+import '../models/messages.dart';
 
 class GroupProvider extends ChangeNotifier {
   final GroupService _groupService = GroupService();
@@ -17,6 +19,9 @@ class GroupProvider extends ChangeNotifier {
   String? _errorMessage;
   String? _currentUserId;
   bool _isCurrentUserAdmin = false;
+
+  // Current group channel for real-time messaging
+  RealtimeChannel? _currentGroupChannel;
 
   // Callback for new messages (for scroll handling in UI)
   Function(Message)? onNewMessageReceived;
@@ -123,7 +128,7 @@ class GroupProvider extends ChangeNotifier {
     _currentGroup = group;
     _currentGroupMessages = [];
     _currentGroupMembers = [];
-    notifyListeners();
+    // Don't call notifyListeners() here - wait until after async operations
 
     try {
       // Load messages and members in parallel
@@ -140,8 +145,8 @@ class GroupProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
-      // Subscribe to real-time updates
-      _groupService.subscribeToGroupMessages(
+      // Subscribe to real-time updates using Postgres changes
+      _currentGroupChannel = _groupService.subscribeToGroupMessages(
         groupId: group.groupId,
         onNewMessage: (message) {
           _handleNewMessage(message);
@@ -382,6 +387,66 @@ class GroupProvider extends ChangeNotifier {
     }
   }
 
+  /// Pick an image from gallery for group
+  Future<XFile?> pickGroupImage() async {
+    try {
+      final image = await _groupService.pickImageFromGallery();
+      return image;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Upload group image
+  Future<String?> uploadGroupImage(XFile imageFile) async {
+    if (_currentGroup == null) return null;
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final imageUrl = await _groupService.uploadGroupImage(
+        groupId: _currentGroup!.groupId,
+        imageFile: imageFile,
+      );
+
+      if (imageUrl != null) {
+        // Refresh group data
+        _currentGroup = await _groupService.getGroup(_currentGroup!.groupId);
+        await refreshGroupConversations();
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return imageUrl;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Upload group image for a specific group (used during creation)
+  Future<String?> uploadGroupImageForGroup({
+    required String groupId,
+    required XFile imageFile,
+  }) async {
+    try {
+      final imageUrl = await _groupService.uploadGroupImage(
+        groupId: groupId,
+        imageFile: imageFile,
+      );
+      return imageUrl;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
   /// Delete the current group
   Future<bool> deleteGroup() async {
     if (_currentGroup == null) return false;
@@ -406,6 +471,7 @@ class GroupProvider extends ChangeNotifier {
     _currentGroupMembers = [];
     _isCurrentUserAdmin = false;
     onNewMessageReceived = null;
+    _currentGroupChannel = null;
     _groupService.unsubscribe();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -430,6 +496,12 @@ class GroupProvider extends ChangeNotifier {
       return '${user.firstname ?? ''} ${user.lastname ?? ''}'.trim();
     }
     return 'Unknown';
+  }
+
+  /// Get user profile picture from a message
+  String? getSenderProfilePic(Message message) {
+    final member = getMemberByUserId(message.senderId ?? '');
+    return member?.user?.profilePic;
   }
 
   void clearError() {

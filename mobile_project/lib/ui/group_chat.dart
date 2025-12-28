@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
 import '../providers/group_provider.dart';
 import '../models/group.dart';
-import '../models/massages.dart';
+import '../models/messages.dart';
 import '../services/location_service.dart';
 import 'group_settings.dart';
 
@@ -30,13 +30,19 @@ class _GroupChatPageState extends State<GroupChatPage> {
     _groupProvider = context.read<GroupProvider>();
     _scrollController.addListener(_onScroll);
     _groupProvider.onNewMessageReceived = _onNewMessageReceived;
-    _loadMessages();
+
+    // Schedule message loading after the build phase completes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadMessages();
+    });
   }
 
   void _loadMessages() async {
     final userId = context.read<AuthProvider>().currentUser?.userId;
     if (userId != null) {
       await _groupProvider.openGroupChat(userId: userId, group: widget.group);
+
+      // Scroll to bottom after messages load
       _scrollToBottom(animate: false);
     }
   }
@@ -296,6 +302,11 @@ class _GroupChatPageState extends State<GroupChatPage> {
                         ? null
                         : groupProvider.getSenderName(message);
 
+                    // Get sender profile picture for non-own messages
+                    final senderProfilePic = isMe
+                        ? null
+                        : groupProvider.getSenderProfilePic(message);
+
                     // Check if we should show sender name (different from previous sender)
                     final showSenderName =
                         !isMe &&
@@ -313,6 +324,9 @@ class _GroupChatPageState extends State<GroupChatPage> {
                           isMe: isMe,
                           time: _formatTime(message.createdAt),
                           senderName: showSenderName ? senderName : null,
+                          senderProfilePic: showSenderName
+                              ? senderProfilePic
+                              : null,
                         ),
                       ],
                     );
@@ -482,13 +496,23 @@ class _GroupMessageBubble extends StatelessWidget {
   final bool isMe;
   final String time;
   final String? senderName;
+  final String? senderProfilePic;
 
   const _GroupMessageBubble({
     required this.message,
     required this.isMe,
     required this.time,
     this.senderName,
+    this.senderProfilePic,
   });
+
+  String _getInitials(String name) {
+    final words = name.split(' ');
+    if (words.length >= 2) {
+      return '${words[0][0]}${words[1][0]}'.toUpperCase();
+    }
+    return name.isNotEmpty ? name[0].toUpperCase() : '?';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -505,80 +529,115 @@ class _GroupMessageBubble extends StatelessWidget {
           left: isMe ? 64 : 0,
           right: isMe ? 0 : 64,
         ),
-        child: Column(
-          crossAxisAlignment: isMe
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            if (senderName != null)
-              Padding(
-                padding: const EdgeInsets.only(left: 12, bottom: 4),
-                child: Text(
-                  senderName!,
-                  style: const TextStyle(
-                    color: Color(0xFF6750A4),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+            // Profile picture for other users' messages
+            if (!isMe && senderName != null) ...[
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: const Color(0xFFE8DEF8),
+                backgroundImage: senderProfilePic != null
+                    ? NetworkImage(senderProfilePic!)
+                    : null,
+                child: senderProfilePic == null
+                    ? Text(
+                        _getInitials(senderName ?? '?'),
+                        style: const TextStyle(
+                          color: Color(0xFF6750A4),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      )
+                    : null,
               ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: isMe ? const Color(0xFF6750A4) : Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(16),
-                  topRight: const Radius.circular(16),
-                  bottomLeft: isMe
-                      ? const Radius.circular(16)
-                      : const Radius.circular(4),
-                  bottomRight: isMe
-                      ? const Radius.circular(4)
-                      : const Radius.circular(16),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
+              const SizedBox(width: 8),
+            ] else if (!isMe && senderName == null) ...[
+              const SizedBox(width: 40), // Placeholder for alignment
+            ],
+            // Message content
+            Flexible(
               child: Column(
                 crossAxisAlignment: isMe
                     ? CrossAxisAlignment.end
                     : CrossAxisAlignment.start,
                 children: [
-                  if (isLocation)
-                    _buildLocationContent(context)
-                  else
-                    Text(
-                      message.message ?? '',
-                      style: TextStyle(
-                        color: isMe ? Colors.white : Colors.black87,
-                        fontSize: 15,
+                  if (senderName != null)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4, bottom: 4),
+                      child: Text(
+                        senderName!,
+                        style: const TextStyle(
+                          color: Color(0xFF6750A4),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        time,
-                        style: TextStyle(
-                          color: isMe ? Colors.white70 : Colors.grey,
-                          fontSize: 11,
-                        ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isMe ? const Color(0xFF6750A4) : Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(16),
+                        topRight: const Radius.circular(16),
+                        bottomLeft: isMe
+                            ? const Radius.circular(16)
+                            : const Radius.circular(4),
+                        bottomRight: isMe
+                            ? const Radius.circular(4)
+                            : const Radius.circular(16),
                       ),
-                      if (isMe) ...[
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.done_all,
-                          size: 14,
-                          color: Colors.white70,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
                         ),
                       ],
-                    ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: isMe
+                          ? CrossAxisAlignment.end
+                          : CrossAxisAlignment.start,
+                      children: [
+                        if (isLocation)
+                          _buildLocationContent(context)
+                        else
+                          Text(
+                            message.message ?? '',
+                            style: TextStyle(
+                              color: isMe ? Colors.white : Colors.black87,
+                              fontSize: 15,
+                            ),
+                          ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              time,
+                              style: TextStyle(
+                                color: isMe ? Colors.white70 : Colors.grey,
+                                fontSize: 11,
+                              ),
+                            ),
+                            if (isMe) ...[
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.done_all,
+                                size: 14,
+                                color: Colors.white70,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

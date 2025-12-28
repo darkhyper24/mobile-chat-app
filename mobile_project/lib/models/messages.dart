@@ -25,7 +25,7 @@ class Message {
           : null,
       senderId: json['sender_id'] as String?,
       receiverId: json['receiver_id'] as String?,
-      message: json['massage'] as String?,
+      message: json['message'] as String?,
       image: json['image'] as String?,
       groupId: json['group_id'] as String?,
     );
@@ -37,7 +37,7 @@ class Message {
       'created_at': createdAt?.toIso8601String(),
       'sender_id': senderId,
       'receiver_id': receiverId,
-      'massage': message,
+      'message': message,
       'image': image,
       'group_id': groupId,
     };

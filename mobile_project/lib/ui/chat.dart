@@ -5,7 +5,7 @@ import '../services/location_service.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import '../models/users.dart';
-import '../models/massages.dart';
+import '../models/messages.dart';
 
 class ChatPage extends StatefulWidget {
   final User partner;
@@ -29,21 +29,21 @@ class _ChatPageState extends State<ChatPage> {
     super.initState();
     _chatProvider = context.read<ChatProvider>();
     _scrollController.addListener(_onScroll);
-    
+
     // Set up callback for new messages
     _chatProvider.onNewMessageReceived = _onNewMessageReceived;
-    
-    _loadMessages();
+
+    // Schedule message loading after the build phase completes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadMessages();
+    });
   }
 
   void _loadMessages() async {
     final userId = context.read<AuthProvider>().currentUser?.userId;
     if (userId != null) {
-      await _chatProvider.openChat(
-        userId: userId,
-        partner: widget.partner,
-      );
-      
+      await _chatProvider.openChat(userId: userId, partner: widget.partner);
+
       // Scroll to bottom after messages load
       _scrollToBottom(animate: false);
       _isInitialized = true;
@@ -61,7 +61,7 @@ class _ChatPageState extends State<ChatPage> {
         );
       }
     }
-    
+
     // Check if user is near bottom to determine auto-scroll behavior
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
@@ -111,7 +111,7 @@ class _ChatPageState extends State<ChatPage> {
 
     _messageController.clear();
     _shouldAutoScroll = true;
-    
+
     final success = await _chatProvider.sendMessage(
       senderId: userId,
       receiverId: widget.partner.userId,
@@ -128,13 +128,16 @@ class _ChatPageState extends State<ChatPage> {
       final locationService = LocationService();
       final position = await locationService.getCurrentLocation();
       if (position != null) {
-        final url = locationService.getGoogleMapsUrl(position.latitude, position.longitude);
-        
+        final url = locationService.getGoogleMapsUrl(
+          position.latitude,
+          position.longitude,
+        );
+
         final userId = context.read<AuthProvider>().currentUser?.userId;
         if (userId == null) return;
 
         _shouldAutoScroll = true;
-        
+
         final success = await _chatProvider.sendMessage(
           senderId: userId,
           receiverId: widget.partner.userId,
@@ -147,9 +150,9 @@ class _ChatPageState extends State<ChatPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -218,7 +221,8 @@ class _ChatPageState extends State<ChatPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${widget.partner.firstname ?? ''} ${widget.partner.lastname ?? ''}'.trim(),
+                    '${widget.partner.firstname ?? ''} ${widget.partner.lastname ?? ''}'
+                        .trim(),
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 16,
@@ -228,10 +232,7 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                   Text(
                     '@${widget.partner.username ?? 'user'}',
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
-                    ),
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                 ],
               ),
@@ -255,17 +256,24 @@ class _ChatPageState extends State<ChatPage> {
                         onTap: () {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Profile view coming soon!')),
+                            const SnackBar(
+                              content: Text('Profile view coming soon!'),
+                            ),
                           );
                         },
                       ),
                       ListTile(
                         leading: const Icon(Icons.block, color: Colors.red),
-                        title: const Text('Block User', style: TextStyle(color: Colors.red)),
+                        title: const Text(
+                          'Block User',
+                          style: TextStyle(color: Colors.red),
+                        ),
                         onTap: () {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Block feature coming soon!')),
+                            const SnackBar(
+                              content: Text('Block feature coming soon!'),
+                            ),
                           );
                         },
                       ),
@@ -283,11 +291,10 @@ class _ChatPageState extends State<ChatPage> {
           Expanded(
             child: Consumer<ChatProvider>(
               builder: (context, chatProvider, _) {
-                if (chatProvider.isLoading && chatProvider.currentMessages.isEmpty) {
+                if (chatProvider.isLoading &&
+                    chatProvider.currentMessages.isEmpty) {
                   return const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF6750A4),
-                    ),
+                    child: CircularProgressIndicator(color: Color(0xFF6750A4)),
                   );
                 }
 
@@ -324,12 +331,16 @@ class _ChatPageState extends State<ChatPage> {
 
                 return ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   itemCount: chatProvider.currentMessages.length,
                   itemBuilder: (context, index) {
                     final message = chatProvider.currentMessages[index];
                     final isMe = message.senderId == currentUserId;
-                    final showDate = index == 0 ||
+                    final showDate =
+                        index == 0 ||
                         _shouldShowDate(
                           chatProvider.currentMessages[index - 1].createdAt,
                           message.createdAt,
@@ -337,8 +348,7 @@ class _ChatPageState extends State<ChatPage> {
 
                     return Column(
                       children: [
-                        if (showDate)
-                          _buildDateSeparator(message.createdAt),
+                        if (showDate) _buildDateSeparator(message.createdAt),
                         _MessageBubble(
                           message: message,
                           isMe: isMe,
@@ -373,7 +383,10 @@ class _ChatPageState extends State<ChatPage> {
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.location_on_outlined, color: Color(0xFF6750A4)),
+                  icon: const Icon(
+                    Icons.location_on_outlined,
+                    color: Color(0xFF6750A4),
+                  ),
                   onPressed: _shareLocation,
                 ),
                 const SizedBox(width: 8),
@@ -419,10 +432,16 @@ class _ChatPageState extends State<ChatPage> {
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               )
-                            : const Icon(Icons.send, color: Colors.white, size: 20),
+                            : const Icon(
+                                Icons.send,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                       ),
                     );
                   },
@@ -494,7 +513,9 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLocation = message.message?.startsWith('https://www.google.com/maps/search/') ?? false;
+    final isLocation =
+        message.message?.startsWith('https://www.google.com/maps/search/') ??
+        false;
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -511,8 +532,12 @@ class _MessageBubble extends StatelessWidget {
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
-            bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(4),
-            bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(16),
+            bottomLeft: isMe
+                ? const Radius.circular(16)
+                : const Radius.circular(4),
+            bottomRight: isMe
+                ? const Radius.circular(4)
+                : const Radius.circular(16),
           ),
           boxShadow: [
             BoxShadow(
@@ -523,7 +548,9 @@ class _MessageBubble extends StatelessWidget {
           ],
         ),
         child: Column(
-          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isMe
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
             if (isLocation)
               _buildLocationContent(context)
@@ -548,11 +575,7 @@ class _MessageBubble extends StatelessWidget {
                 ),
                 if (isMe) ...[
                   const SizedBox(width: 4),
-                  Icon(
-                    Icons.done_all,
-                    size: 14,
-                    color: Colors.white70,
-                  ),
+                  Icon(Icons.done_all, size: 14, color: Colors.white70),
                 ],
               ],
             ),
@@ -573,10 +596,7 @@ class _MessageBubble extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.location_on,
-            color: isMe ? Colors.white : Colors.red,
-          ),
+          Icon(Icons.location_on, color: isMe ? Colors.white : Colors.red),
           const SizedBox(width: 8),
           Text(
             'Shared Location',

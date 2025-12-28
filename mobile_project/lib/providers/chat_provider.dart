@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/message_service.dart';
-import '../models/massages.dart';
+import '../models/messages.dart';
 import '../models/users.dart' as models;
 
 class ChatProvider extends ChangeNotifier {
@@ -14,7 +15,10 @@ class ChatProvider extends ChangeNotifier {
   bool _isSending = false;
   String? _errorMessage;
   String? _currentUserId;
-  
+
+  // Current DM channel for real-time messaging
+  RealtimeChannel? _currentDmChannel;
+
   // Callback for new messages (for scroll handling in UI)
   Function(Message)? onNewMessageReceived;
 
@@ -30,17 +34,14 @@ class ChatProvider extends ChangeNotifier {
     _currentUserId = userId;
     _isLoading = true;
     _errorMessage = null;
-    
-    // Use post-frame callback to avoid calling notifyListeners during build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      notifyListeners();
-    });
+
+    // Don't call notifyListeners() here - the caller should handle initial state
 
     try {
       _conversations = await _messageService.getConversations(userId);
-      
-      // Subscribe to real-time updates for home page
-      _messageService.subscribeToAllMessages(
+
+      // Subscribe to real-time updates for home page using broadcast
+      _messageService.subscribeToAllDmMessages(
         userId: userId,
         onNewMessage: (message) {
           // Refresh conversations when new message arrives
@@ -75,7 +76,7 @@ class ChatProvider extends ChangeNotifier {
     _errorMessage = null;
     _currentChatPartner = partner;
     _currentMessages = [];
-    notifyListeners();
+    // Don't call notifyListeners() here - wait until after async operations
 
     try {
       // Load initial messages
@@ -83,12 +84,12 @@ class ChatProvider extends ChangeNotifier {
         userId: userId,
         partnerId: partner.userId,
       );
-      
+
       _isLoading = false;
       notifyListeners();
 
-      // Subscribe to real-time messages for this conversation
-      _messageService.subscribeToConversation(
+      // Subscribe to real-time messages for this conversation using broadcast channel
+      _currentDmChannel = _messageService.subscribeToDmChannel(
         userId: userId,
         partnerId: partner.userId,
         onNewMessage: (message) {
@@ -105,12 +106,14 @@ class ChatProvider extends ChangeNotifier {
   /// Handle incoming real-time message
   void _handleNewMessage(Message message, String userId) {
     // Check if message already exists (might have been added when sent)
-    final exists = _currentMessages.any((m) => m.messageId == message.messageId);
-    
+    final exists = _currentMessages.any(
+      (m) => m.messageId == message.messageId,
+    );
+
     if (!exists) {
       _currentMessages = [..._currentMessages, message];
       notifyListeners();
-      
+
       // Notify UI about new message (for scroll handling)
       onNewMessageReceived?.call(message);
     }
@@ -178,7 +181,7 @@ class ChatProvider extends ChangeNotifier {
         final newMessages = moreMessages
             .where((m) => !existingIds.contains(m.messageId))
             .toList();
-        
+
         if (newMessages.isNotEmpty) {
           _currentMessages = [...newMessages, ..._currentMessages];
           notifyListeners();
@@ -195,18 +198,19 @@ class ChatProvider extends ChangeNotifier {
     _currentChatPartner = null;
     _currentMessages = [];
     onNewMessageReceived = null;
+    _currentDmChannel = null;
     _messageService.unsubscribeFromConversation();
-    
+
     // Only notify if we're not disposing
     if (_currentUserId != null) {
       // Re-subscribe to all messages for home page if we have a user ID
-      _messageService.subscribeToAllMessages(
+      _messageService.subscribeToAllDmMessages(
         userId: _currentUserId!,
         onNewMessage: (message) {
           _refreshConversations(_currentUserId!);
         },
       );
-      
+
       // Use post-frame callback to safely notify listeners
       WidgetsBinding.instance.addPostFrameCallback((_) {
         notifyListeners();
@@ -217,10 +221,12 @@ class ChatProvider extends ChangeNotifier {
   /// Filter conversations by search query
   List<Conversation> searchConversations(String query) {
     if (query.isEmpty) return _conversations;
-    
+
     final lowerQuery = query.toLowerCase();
     return _conversations.where((conv) {
-      final name = '${conv.participant.firstname ?? ''} ${conv.participant.lastname ?? ''}'.toLowerCase();
+      final name =
+          '${conv.participant.firstname ?? ''} ${conv.participant.lastname ?? ''}'
+              .toLowerCase();
       final username = (conv.participant.username ?? '').toLowerCase();
       return name.contains(lowerQuery) || username.contains(lowerQuery);
     }).toList();

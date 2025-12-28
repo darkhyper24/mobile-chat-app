@@ -1,9 +1,12 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/group_provider.dart';
 import '../providers/friends_provider.dart';
 import '../models/users.dart';
+import '../services/group_service.dart';
 import 'group_chat.dart';
 
 class CreateGroupPage extends StatefulWidget {
@@ -17,9 +20,11 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _imageController = TextEditingController();
   final Set<String> _selectedMemberIds = {};
   bool _isLoading = false;
+  XFile? _selectedImageFile;
+  Uint8List? _selectedImageBytes;
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
@@ -38,7 +43,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
-    _imageController.dispose();
     super.dispose();
   }
 
@@ -51,24 +55,36 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     setState(() => _isLoading = true);
 
     try {
-      final group = await context.read<GroupProvider>().createGroup(
+      final groupProvider = context.read<GroupProvider>();
+
+      // Create the group first (without image)
+      final group = await groupProvider.createGroup(
         name: _nameController.text.trim(),
         creatorId: userId,
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
-        image: _imageController.text.trim().isEmpty
-            ? null
-            : _imageController.text.trim(),
         initialMemberIds: _selectedMemberIds.toList(),
       );
 
-      if (group != null && mounted) {
-        Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => GroupChatPage(group: group)),
-        );
+      if (group != null) {
+        // Upload image if selected
+        if (_selectedImageFile != null) {
+          await groupProvider.uploadGroupImageForGroup(
+            groupId: group.groupId,
+            imageFile: _selectedImageFile!,
+          );
+        }
+
+        if (mounted) {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => GroupChatPage(group: group),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -139,10 +155,14 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                   CircleAvatar(
                     radius: 50,
                     backgroundColor: const Color(0xFFE8DEF8),
-                    backgroundImage: _imageController.text.isNotEmpty
-                        ? NetworkImage(_imageController.text)
+                    backgroundImage: _selectedImageBytes != null
+                        ? MemoryImage(_selectedImageBytes!)
                         : null,
-                    child: _imageController.text.isEmpty
+                    child: _isUploadingImage
+                        ? const CircularProgressIndicator(
+                            color: Color(0xFF6750A4),
+                          )
+                        : _selectedImageBytes == null
                         ? const Icon(
                             Icons.group,
                             size: 40,
@@ -163,9 +183,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                           size: 16,
                           color: Colors.white,
                         ),
-                        onPressed: () {
-                          _showImageUrlDialog();
-                        },
+                        onPressed: _pickImage,
                       ),
                     ),
                   ),
@@ -365,32 +383,23 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     );
   }
 
-  void _showImageUrlDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Group Image URL'),
-        content: TextField(
-          controller: _imageController,
-          decoration: const InputDecoration(hintText: 'Enter image URL'),
-          onChanged: (value) {
-            setState(() {});
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() {});
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _pickImage() async {
+    try {
+      final groupService = GroupService();
+      final image = await groupService.pickImageFromGallery();
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _selectedImageFile = image;
+          _selectedImageBytes = bytes;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
+      }
+    }
   }
 }

@@ -28,7 +28,7 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     final authProvider = context.read<AuthProvider>();
-    
+
     final success = await authProvider.signIn(
       email: _emailController.text.trim(),
       password: _passwordController.text,
@@ -86,7 +86,7 @@ class _LoginPageState extends State<LoginPage> {
 
                   // Title
                   const Text(
-                    'ChatApp',
+                    'ZC Chat',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -196,7 +196,9 @@ class _LoginPageState extends State<LoginPage> {
                       return SizedBox(
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: authProvider.isLoading ? null : _handleLogin,
+                          onPressed: authProvider.isLoading
+                              ? null
+                              : _handleLogin,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF6750A4),
                             foregroundColor: Colors.white,

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../database/db.dart';
-import '../models/massages.dart';
+import '../models/messages.dart';
 import '../models/users.dart' as models;
 
 /// Represents a conversation derived from messages
@@ -24,8 +24,8 @@ class MessageService {
 
   final _db = DatabaseService();
 
-  // Realtime subscription channels
-  RealtimeChannel? _conversationChannel;
+  // Realtime subscription channels for broadcast messaging
+  RealtimeChannel? _dmChannel;
   RealtimeChannel? _allMessagesChannel;
 
   // Stream controllers for real-time updates
@@ -33,12 +33,17 @@ class MessageService {
 
   Stream<Message> get newMessageStream => _newMessageController.stream;
 
+  /// Helper: build DM topic (pair-topic) with lexicographically smaller id first
+  String _dmTopic(String a, String b) {
+    return a.compareTo(b) < 0 ? 'dm:$a-$b' : 'dm:$b-$a';
+  }
+
   /// Get all conversations for a user (derived from messages)
   Future<List<Conversation>> getConversations(String userId) async {
     try {
       // Get all messages where user is sender or receiver (direct messages only)
       final messages = await _db.client
-          .from('massages')
+          .from('messages')
           .select()
           .or('sender_id.eq.$userId,receiver_id.eq.$userId')
           .isFilter('group_id', null)
@@ -118,7 +123,7 @@ class MessageService {
   }) async {
     try {
       var query = _db.client
-          .from('massages')
+          .from('messages')
           .select()
           .or(
             'and(sender_id.eq.$userId,receiver_id.eq.$partnerId),and(sender_id.eq.$partnerId,receiver_id.eq.$userId)',
@@ -144,131 +149,177 @@ class MessageService {
     }
   }
 
-  /// Send a text message
+  /// Send a text message (inserts to DB and broadcasts via channel)
   Future<Message?> sendMessage({
     required String senderId,
     required String receiverId,
     required String text,
   }) async {
     try {
+      // Insert message to database first (canonical storage)
       final response = await _db.client
-          .from('massages')
+          .from('messages')
           .insert({
             'sender_id': senderId,
             'receiver_id': receiverId,
-            'massage': text,
+            'message': text,
             'group_id': null, // Explicitly set to null for direct messages
           })
           .select()
           .single();
 
-      return Message.fromJson(response);
+      final message = Message.fromJson(response);
+
+      // Broadcast the message via the DM channel if subscribed
+      if (_dmChannel != null) {
+        _broadcastMessage(channel: _dmChannel!, message: message);
+      }
+
+      return message;
     } catch (e) {
       print('Error sending message: $e');
       rethrow;
     }
   }
 
-  /// Subscribe to real-time messages for a specific conversation
-  void subscribeToConversation({
+  /// Broadcast a message via channel.send (WebSocket broadcast)
+  void _broadcastMessage({
+    required RealtimeChannel channel,
+    required Message message,
+  }) {
+    channel.sendBroadcastMessage(
+      event: 'message_created',
+      payload: {
+        'message_id': message.messageId,
+        'message': message.message,
+        'sender_id': message.senderId,
+        'receiver_id': message.receiverId,
+        'group_id': message.groupId,
+        'image': message.image,
+        'created_at': message.createdAt?.toIso8601String(),
+      },
+    );
+  }
+
+  /// Subscribe to real-time messages for a specific DM conversation using broadcast
+  RealtimeChannel subscribeToDmChannel({
     required String userId,
     required String partnerId,
     required Function(Message) onNewMessage,
   }) {
-    // Unsubscribe from previous conversation channel if exists
-    _conversationChannel?.unsubscribe();
+    // Unsubscribe from previous DM channel if exists
+    _unsubscribeDmChannel();
 
-    final channelName = 'chat:${_sortIds(userId, partnerId)}';
+    final topic = _dmTopic(userId, partnerId);
+    final channel = _db.client.channel(
+      topic,
+      opts: const RealtimeChannelConfig(private: true),
+    );
 
-    _conversationChannel = _db.client
-        .channel(channelName)
-        .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
-          schema: 'public',
-          table: 'massages',
-          callback: (payload) {
-            try {
-              final newMessage = Message.fromJson(payload.newRecord);
+    channel.onBroadcast(
+      event: 'message_created',
+      callback: (payload) {
+        try {
+          final newMessage = Message.fromJson(payload);
 
-              // Only process if this message is part of our conversation
-              final isInConversation =
-                  (newMessage.senderId == userId &&
-                      newMessage.receiverId == partnerId) ||
-                  (newMessage.senderId == partnerId &&
-                      newMessage.receiverId == userId);
+          // Only process if this message is part of our conversation
+          final isInConversation =
+              (newMessage.senderId == userId &&
+                  newMessage.receiverId == partnerId) ||
+              (newMessage.senderId == partnerId &&
+                  newMessage.receiverId == userId);
 
-              if (isInConversation && newMessage.groupId == null) {
-                onNewMessage(newMessage);
-                _newMessageController.add(newMessage);
-              }
-            } catch (e) {
-              print('Error processing realtime message: $e');
-            }
-          },
-        )
-        .subscribe((status, [error]) {
-          print('Conversation subscription status: $status');
-          if (error != null) {
-            print('Subscription error: $error');
+          if (isInConversation && newMessage.groupId == null) {
+            onNewMessage(newMessage);
+            _newMessageController.add(newMessage);
           }
-        });
+        } catch (e) {
+          print('Error processing realtime DM message: $e');
+        }
+      },
+    );
+
+    channel.subscribe((status, [error]) {
+      if (status == RealtimeSubscribeStatus.subscribed) {
+        print('Subscribed to DM channel: $topic');
+      } else {
+        print('DM channel status: $status ${error ?? ''}');
+      }
+    });
+
+    _dmChannel = channel;
+    return channel;
   }
 
-  /// Subscribe to all new messages for a user (for home page updates)
-  void subscribeToAllMessages({
+  /// Subscribe to all new messages for a user (for home page updates) using broadcast
+  RealtimeChannel subscribeToAllDmMessages({
     required String userId,
     required Function(Message) onNewMessage,
   }) {
     // Unsubscribe from previous channel if exists
-    _allMessagesChannel?.unsubscribe();
+    _unsubscribeAllMessagesChannel();
 
-    _allMessagesChannel = _db.client
-        .channel('all-messages:$userId')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
-          schema: 'public',
-          table: 'massages',
-          callback: (payload) {
-            try {
-              final newMessage = Message.fromJson(payload.newRecord);
+    final topic = 'user:$userId:dm_updates';
+    final channel = _db.client.channel(
+      topic,
+      opts: const RealtimeChannelConfig(private: true),
+    );
 
-              // Only process if user is involved in this message
-              final isUserInvolved =
-                  newMessage.senderId == userId ||
-                  newMessage.receiverId == userId;
+    channel.onBroadcast(
+      event: 'message_created',
+      callback: (payload) {
+        try {
+          final newMessage = Message.fromJson(payload);
 
-              if (isUserInvolved && newMessage.groupId == null) {
-                onNewMessage(newMessage);
-              }
-            } catch (e) {
-              print('Error processing realtime message: $e');
-            }
-          },
-        )
-        .subscribe((status, [error]) {
-          print('All messages subscription status: $status');
-          if (error != null) {
-            print('Subscription error: $error');
+          // Only process if user is involved in this message
+          final isUserInvolved =
+              newMessage.senderId == userId || newMessage.receiverId == userId;
+
+          if (isUserInvolved && newMessage.groupId == null) {
+            onNewMessage(newMessage);
           }
-        });
+        } catch (e) {
+          print('Error processing realtime message: $e');
+        }
+      },
+    );
+
+    channel.subscribe((status, [error]) {
+      if (status == RealtimeSubscribeStatus.subscribed) {
+        print('Subscribed to all DM updates: $topic');
+      } else {
+        print('All messages channel status: $status ${error ?? ''}');
+      }
+    });
+
+    _allMessagesChannel = channel;
+    return channel;
   }
 
-  /// Helper to create consistent channel names
-  String _sortIds(String id1, String id2) {
-    final ids = [id1, id2]..sort();
-    return ids.join('-');
-  }
-
-  /// Unsubscribe from conversation channel
-  void unsubscribeFromConversation() {
-    _conversationChannel?.unsubscribe();
-    _conversationChannel = null;
+  /// Unsubscribe from DM channel
+  void _unsubscribeDmChannel() {
+    if (_dmChannel != null) {
+      _db.client.removeChannel(_dmChannel!);
+      _dmChannel = null;
+    }
   }
 
   /// Unsubscribe from all messages channel
+  void _unsubscribeAllMessagesChannel() {
+    if (_allMessagesChannel != null) {
+      _db.client.removeChannel(_allMessagesChannel!);
+      _allMessagesChannel = null;
+    }
+  }
+
+  /// Unsubscribe from conversation channel (public API)
+  void unsubscribeFromConversation() {
+    _unsubscribeDmChannel();
+  }
+
+  /// Unsubscribe from all messages channel (public API)
   void unsubscribeFromAllMessages() {
-    _allMessagesChannel?.unsubscribe();
-    _allMessagesChannel = null;
+    _unsubscribeAllMessagesChannel();
   }
 
   /// Unsubscribe from all real-time updates
@@ -282,4 +333,7 @@ class MessageService {
     unsubscribe();
     _newMessageController.close();
   }
+
+  /// Get the current DM channel (for sending messages after subscription)
+  RealtimeChannel? get dmChannel => _dmChannel;
 }

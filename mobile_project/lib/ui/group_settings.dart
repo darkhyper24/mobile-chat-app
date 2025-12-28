@@ -17,6 +17,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   bool _isEditing = false;
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
@@ -106,7 +107,11 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                           backgroundImage: group.image != null
                               ? NetworkImage(group.image!)
                               : null,
-                          child: group.image == null
+                          child: _isUploadingImage
+                              ? const CircularProgressIndicator(
+                                  color: Color(0xFF6750A4),
+                                )
+                              : group.image == null
                               ? Text(
                                   _getInitials(group.name),
                                   style: const TextStyle(
@@ -117,7 +122,8 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                                 )
                               : null,
                         ),
-                        if (groupProvider.isCurrentUserAdmin)
+                        if (groupProvider.isCurrentUserAdmin &&
+                            !_isUploadingImage)
                           Positioned(
                             bottom: 0,
                             right: 0,
@@ -391,35 +397,44 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     }
   }
 
-  void _changeGroupImage() {
-    final imageController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Change Group Image'),
-        content: TextField(
-          controller: imageController,
-          decoration: const InputDecoration(hintText: 'Enter image URL'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+  void _changeGroupImage() async {
+    final groupProvider = context.read<GroupProvider>();
+
+    setState(() => _isUploadingImage = true);
+
+    try {
+      // Pick image from gallery
+      final imageFile = await groupProvider.pickGroupImage();
+      if (imageFile == null) {
+        setState(() => _isUploadingImage = false);
+        return;
+      }
+
+      // Upload to Supabase
+      final imageUrl = await groupProvider.uploadGroupImage(imageFile);
+
+      if (imageUrl != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Group image updated successfully'),
+            backgroundColor: Color(0xFF6750A4),
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              if (imageController.text.isNotEmpty) {
-                await context.read<GroupProvider>().updateGroup(
-                  image: imageController.text,
-                );
-              }
-            },
-            child: const Text('Update'),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update group image: $e'),
+            backgroundColor: Colors.red,
           ),
-        ],
-      ),
-    );
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingImage = false);
+      }
+    }
   }
 
   void _showAddMembersSheet(BuildContext context) {

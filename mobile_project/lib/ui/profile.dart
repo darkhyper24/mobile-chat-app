@@ -124,7 +124,7 @@ class _ProfilePageState extends State<ProfilePage> {
       // Upload to Supabase
       final imageUrl = await _userService.uploadProfilePicture(
         userId: userId,
-        imagePath: image.path,
+        imageFile: image,
       );
 
       if (imageUrl != null && mounted) {
