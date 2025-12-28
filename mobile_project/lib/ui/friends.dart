@@ -122,7 +122,9 @@ class _FriendsPageState extends State<FriendsPage>
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
     final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey;
-    final inputFillColor = isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF5F5F5);
+    final inputFillColor = isDark
+        ? const Color(0xFF2D2D2D)
+        : const Color(0xFFF5F5F5);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -281,7 +283,7 @@ class _FriendsPageState extends State<FriendsPage>
         currentIndex: 1, // Friends tab is selected
         onTap: _onNavItemTapped,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: isDark 
+        selectedItemColor: isDark
             ? const Color(0xFFD0BCFF)
             : const Color(0xFF6750A4),
         unselectedItemColor: Colors.grey,
@@ -550,8 +552,12 @@ class _FriendListItemState extends State<_FriendListItem> {
     final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade200;
     final textColor = isDark ? Colors.white : Colors.black;
     final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey;
-    final avatarBgColor = isDark ? const Color(0xFF3E3253) : const Color(0xFFE8DEF8);
-    final avatarTextColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
+    final avatarBgColor = isDark
+        ? const Color(0xFF3E3253)
+        : const Color(0xFFE8DEF8);
+    final avatarTextColor = isDark
+        ? const Color(0xFFD0BCFF)
+        : const Color(0xFF6750A4);
 
     return GestureDetector(
       onHorizontalDragUpdate: (details) {
@@ -601,7 +607,11 @@ class _FriendListItemState extends State<_FriendListItem> {
           title: Text(
             '${widget.friend.firstname ?? ''} ${widget.friend.lastname ?? ''}'
                 .trim(),
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: textColor),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              color: textColor,
+            ),
           ),
           subtitle: Text(
             '@${widget.friend.username ?? 'user'}',
@@ -735,8 +745,12 @@ class _FriendRequestItemState extends State<_FriendRequestItem> {
     final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade200;
     final textColor = isDark ? Colors.white : Colors.black;
     final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey;
-    final avatarBgColor = isDark ? const Color(0xFF3E3253) : const Color(0xFFE8DEF8);
-    final avatarTextColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
+    final avatarBgColor = isDark
+        ? const Color(0xFF3E3253)
+        : const Color(0xFFE8DEF8);
+    final avatarTextColor = isDark
+        ? const Color(0xFFD0BCFF)
+        : const Color(0xFF6750A4);
 
     return AnimatedOpacity(
       opacity: _isVisible ? 1.0 : 0.0,
@@ -790,10 +804,7 @@ class _FriendRequestItemState extends State<_FriendRequestItem> {
                     if (widget.senderUsername.isNotEmpty)
                       Text(
                         '@${widget.senderUsername}',
-                        style: TextStyle(
-                          color: subtitleColor,
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: subtitleColor, fontSize: 14),
                       ),
                   ],
                 ),

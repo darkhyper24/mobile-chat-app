@@ -58,12 +58,18 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     final currentUserId = context.read<AuthProvider>().currentUser?.userId;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final backgroundColor = isDark ? const Color(0xFF121212) : const Color(0xFFF8F8F8);
+    final backgroundColor = isDark
+        ? const Color(0xFF121212)
+        : const Color(0xFFF8F8F8);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
     final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
-    final primaryColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
-    final avatarBgColor = isDark ? const Color(0xFF3E3253) : const Color(0xFFE8DEF8);
+    final primaryColor = isDark
+        ? const Color(0xFFD0BCFF)
+        : const Color(0xFF6750A4);
+    final avatarBgColor = isDark
+        ? const Color(0xFF3E3253)
+        : const Color(0xFFE8DEF8);
     final dividerColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
 
     return Scaffold(
@@ -97,7 +103,12 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
         builder: (context, groupProvider, _) {
           final group = groupProvider.currentGroup;
           if (group == null) {
-            return Center(child: Text('Group not found', style: TextStyle(color: textColor)));
+            return Center(
+              child: Text(
+                'Group not found',
+                style: TextStyle(color: textColor),
+              ),
+            );
           }
 
           return ListView(
@@ -117,9 +128,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                               ? NetworkImage(group.image!)
                               : null,
                           child: _isUploadingImage
-                              ? CircularProgressIndicator(
-                                  color: primaryColor,
-                                )
+                              ? CircularProgressIndicator(color: primaryColor)
                               : group.image == null
                               ? Text(
                                   _getInitials(group.name),
@@ -186,7 +195,11 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                           ),
                           if (groupProvider.isCurrentUserAdmin)
                             IconButton(
-                              icon: Icon(Icons.edit, size: 20, color: textColor),
+                              icon: Icon(
+                                Icons.edit,
+                                size: 20,
+                                color: textColor,
+                              ),
                               onPressed: () {
                                 setState(() => _isEditing = true);
                               },
@@ -196,10 +209,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     const SizedBox(height: 8),
                     Text(
                       '${groupProvider.currentGroupMembers.length} members',
-                      style: TextStyle(
-                        color: subtitleColor,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: subtitleColor, fontSize: 14),
                     ),
                     if (_isEditing) ...[
                       const SizedBox(height: 16),
@@ -221,10 +231,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       Text(
                         group.description!,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: subtitleColor,
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: subtitleColor, fontSize: 14),
                       ),
                     ],
                   ],
@@ -254,10 +261,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                           if (groupProvider.isCurrentUserAdmin)
                             TextButton.icon(
                               onPressed: () => _showAddMembersSheet(context),
-                              icon: Icon(
-                                Icons.person_add,
-                                color: primaryColor,
-                              ),
+                              icon: Icon(Icons.person_add, color: primaryColor),
                               label: Text(
                                 'Add',
                                 style: TextStyle(color: primaryColor),
@@ -308,7 +312,10 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                                 ),
                             ],
                           ),
-                          subtitle: Text('@${user?.username ?? 'user'}', style: TextStyle(color: subtitleColor)),
+                          subtitle: Text(
+                            '@${user?.username ?? 'user'}',
+                            style: TextStyle(color: subtitleColor),
+                          ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -468,8 +475,12 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     final sheetColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
     final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
-    final primaryColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
-    final avatarBgColor = isDark ? const Color(0xFF3E3253) : const Color(0xFFE8DEF8);
+    final primaryColor = isDark
+        ? const Color(0xFFD0BCFF)
+        : const Color(0xFF6750A4);
+    final avatarBgColor = isDark
+        ? const Color(0xFF3E3253)
+        : const Color(0xFFE8DEF8);
     final handleColor = isDark ? Colors.grey.shade600 : Colors.grey.shade300;
     final dividerColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
 
@@ -501,7 +512,11 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   'Add Members',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textColor),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
                 ),
               ),
               Divider(color: dividerColor),
@@ -509,7 +524,9 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                 child: Consumer2<FriendsProvider, GroupProvider>(
                   builder: (context, friendsProvider, groupProvider, _) {
                     if (friendsProvider.isLoading) {
-                      return Center(child: CircularProgressIndicator(color: primaryColor));
+                      return Center(
+                        child: CircularProgressIndicator(color: primaryColor),
+                      );
                     }
 
                     // Filter out users who are already members
@@ -566,12 +583,12 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                                 .trim(),
                             style: TextStyle(color: textColor),
                           ),
-                          subtitle: Text('@${friend.username ?? ''}', style: TextStyle(color: subtitleColor)),
+                          subtitle: Text(
+                            '@${friend.username ?? ''}',
+                            style: TextStyle(color: subtitleColor),
+                          ),
                           trailing: IconButton(
-                            icon: Icon(
-                              Icons.add_circle,
-                              color: primaryColor,
-                            ),
+                            icon: Icon(Icons.add_circle, color: primaryColor),
                             onPressed: () async {
                               final success = await groupProvider.addMember(
                                 friend.userId,

@@ -288,7 +288,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: isDark 
+                    color: isDark
                         ? Colors.black.withOpacity(0.3)
                         : Colors.grey.withOpacity(0.1),
                     spreadRadius: 1,
@@ -301,7 +301,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 children: [
                   // Avatar
                   CircleAvatar(
-                    backgroundColor: isDark 
+                    backgroundColor: isDark
                         ? const Color(0xFF3D3D3D)
                         : const Color(0xFFE8DEF8),
                     radius: 50,
@@ -314,7 +314,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             user?.firstname?.substring(0, 1).toUpperCase() ??
                                 'U',
                             style: TextStyle(
-                              color: isDark 
+                              color: isDark
                                   ? const Color(0xFFD0BCFF)
                                   : const Color(0xFF6750A4),
                               fontWeight: FontWeight.bold,
@@ -355,7 +355,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: isDark 
+                    color: isDark
                         ? Colors.black.withOpacity(0.3)
                         : Colors.grey.withOpacity(0.1),
                     spreadRadius: 1,
@@ -395,7 +395,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: isDark 
+                    color: isDark
                         ? Colors.black.withOpacity(0.3)
                         : Colors.grey.withOpacity(0.1),
                     spreadRadius: 1,
@@ -439,7 +439,7 @@ class _SettingsPageState extends State<SettingsPage> {
           }
         },
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: isDark 
+        selectedItemColor: isDark
             ? const Color(0xFFD0BCFF)
             : const Color(0xFF6750A4),
         unselectedItemColor: Colors.grey,
@@ -557,14 +557,12 @@ class _AnimatedSettingsItemState extends State<_AnimatedSettingsItem> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = widget.isDark 
-        ? const Color(0xFFD0BCFF) 
+    final primaryColor = widget.isDark
+        ? const Color(0xFFD0BCFF)
         : const Color(0xFF6750A4);
     final iconBgColor = widget.isDestructive
         ? Colors.red.withOpacity(0.1)
-        : (widget.isDark 
-            ? const Color(0xFF3D3D3D)
-            : const Color(0xFFE8DEF8));
+        : (widget.isDark ? const Color(0xFF3D3D3D) : const Color(0xFFE8DEF8));
     final textColor = widget.isDestructive
         ? Colors.red
         : (widget.isDark ? Colors.white : Colors.black);
@@ -632,8 +630,8 @@ class _AnimatedSettingsItemState extends State<_AnimatedSettingsItem> {
                   duration: const Duration(milliseconds: 100),
                   child: Icon(
                     Icons.chevron_right,
-                    color: widget.isDestructive 
-                        ? Colors.red 
+                    color: widget.isDestructive
+                        ? Colors.red
                         : (widget.isDark ? Colors.grey.shade400 : Colors.grey),
                   ),
                 ),

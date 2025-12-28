@@ -200,7 +200,7 @@ class _HomePageState extends State<HomePage> {
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: CircleAvatar(
-                      backgroundColor: isDark 
+                      backgroundColor: isDark
                           ? const Color(0xFF3D3D3D)
                           : const Color(0xFFE8DEF8),
                       backgroundImage: user?.profilePic != null
@@ -211,7 +211,7 @@ class _HomePageState extends State<HomePage> {
                               user?.firstname?.substring(0, 1).toUpperCase() ??
                                   'U',
                               style: TextStyle(
-                                color: isDark 
+                                color: isDark
                                     ? const Color(0xFFD0BCFF)
                                     : const Color(0xFF6750A4),
                                 fontWeight: FontWeight.bold,
@@ -315,7 +315,7 @@ class _HomePageState extends State<HomePage> {
         currentIndex: _selectedIndex,
         onTap: _onNavItemTapped,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: isDark 
+        selectedItemColor: isDark
             ? const Color(0xFFD0BCFF)
             : const Color(0xFF6750A4),
         unselectedItemColor: Colors.grey,
@@ -386,7 +386,9 @@ class _HomePageState extends State<HomePage> {
                   final theme = Theme.of(context);
                   final isDark = theme.brightness == Brightness.dark;
                   final textColor = isDark ? Colors.white : Colors.black87;
-                  final accentColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
+                  final accentColor = isDark
+                      ? const Color(0xFFD0BCFF)
+                      : const Color(0xFF6750A4);
                   return Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -399,7 +401,8 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () => Navigator.pushNamed(context, '/friends'),
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/friends'),
                         child: Text(
                           'See all',
                           style: TextStyle(
@@ -776,8 +779,12 @@ class _AnimatedFriendAvatarState extends State<_AnimatedFriendAvatar> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final avatarBgColor = isDark ? const Color(0xFF3E3253) : const Color(0xFFE8DEF8);
-    final avatarTextColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
+    final avatarBgColor = isDark
+        ? const Color(0xFF3E3253)
+        : const Color(0xFFE8DEF8);
+    final avatarTextColor = isDark
+        ? const Color(0xFFD0BCFF)
+        : const Color(0xFF6750A4);
     final textColor = isDark ? Colors.white : Colors.black;
 
     return GestureDetector(
@@ -903,8 +910,12 @@ class _AnimatedConversationItemState extends State<_AnimatedConversationItem> {
     final lastMessage = widget.conversation.lastMessage;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final avatarBgColor = isDark ? const Color(0xFF3E3253) : const Color(0xFFE8DEF8);
-    final avatarTextColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
+    final avatarBgColor = isDark
+        ? const Color(0xFF3E3253)
+        : const Color(0xFFE8DEF8);
+    final avatarTextColor = isDark
+        ? const Color(0xFFD0BCFF)
+        : const Color(0xFF6750A4);
     final textColor = isDark ? Colors.white : Colors.black;
     final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
 
@@ -955,7 +966,11 @@ class _AnimatedConversationItemState extends State<_AnimatedConversationItem> {
             title: Text(
               '${participant.firstname ?? ''} ${participant.lastname ?? ''}'
                   .trim(),
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: textColor),
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: textColor,
+              ),
             ),
             subtitle: Row(
               children: [
@@ -1040,8 +1055,12 @@ class _AnimatedGroupItemState extends State<_AnimatedGroupItem> {
     final lastMessage = widget.groupConv.lastMessage;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final avatarBgColor = isDark ? const Color(0xFF3E3253) : const Color(0xFFE8DEF8);
-    final avatarTextColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
+    final avatarBgColor = isDark
+        ? const Color(0xFF3E3253)
+        : const Color(0xFFE8DEF8);
+    final avatarTextColor = isDark
+        ? const Color(0xFFD0BCFF)
+        : const Color(0xFF6750A4);
     final textColor = isDark ? Colors.white : Colors.black;
     final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey.shade500;
 
@@ -1095,7 +1114,11 @@ class _AnimatedGroupItemState extends State<_AnimatedGroupItem> {
             ),
             title: Text(
               group.name ?? 'Group',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: textColor),
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: textColor,
+              ),
             ),
             subtitle: Row(
               children: [
@@ -1112,10 +1135,7 @@ class _AnimatedGroupItemState extends State<_AnimatedGroupItem> {
                       lastMessage.message ?? '',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: subtitleColor,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: subtitleColor, fontSize: 14),
                     ),
                   ),
                 ],

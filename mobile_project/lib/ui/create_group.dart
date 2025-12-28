@@ -116,8 +116,12 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     final backgroundColor = isDark ? const Color(0xFF121212) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
     final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
-    final avatarBgColor = isDark ? const Color(0xFF3D3D3D) : const Color(0xFFE8DEF8);
-    final primaryColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
+    final avatarBgColor = isDark
+        ? const Color(0xFF3D3D3D)
+        : const Color(0xFFE8DEF8);
+    final primaryColor = isDark
+        ? const Color(0xFFD0BCFF)
+        : const Color(0xFF6750A4);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -167,15 +171,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                         ? MemoryImage(_selectedImageBytes!)
                         : null,
                     child: _isUploadingImage
-                        ? CircularProgressIndicator(
-                            color: primaryColor,
-                          )
+                        ? CircularProgressIndicator(color: primaryColor)
                         : _selectedImageBytes == null
-                        ? Icon(
-                            Icons.group,
-                            size: 40,
-                            color: primaryColor,
-                          )
+                        ? Icon(Icons.group, size: 40, color: primaryColor)
                         : null,
                   ),
                   Positioned(
@@ -250,7 +248,11 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             // Add Members Section
             Text(
               'Add Members',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: textColor),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -271,7 +273,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     runSpacing: 8,
                     children: selectedFriends.map((friend) {
                       return Chip(
-                        backgroundColor: isDark ? const Color(0xFF2D2D2D) : null,
+                        backgroundColor: isDark
+                            ? const Color(0xFF2D2D2D)
+                            : null,
                         avatar: CircleAvatar(
                           backgroundColor: avatarBgColor,
                           backgroundImage: friend.profilePic != null
@@ -280,7 +284,10 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                           child: friend.profilePic == null
                               ? Text(
                                   _getInitials(friend),
-                                  style: TextStyle(fontSize: 10, color: primaryColor),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: primaryColor,
+                                  ),
                                 )
                               : null,
                         ),
@@ -360,7 +367,10 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                             .trim(),
                         style: TextStyle(color: textColor),
                       ),
-                      subtitle: Text('@${friend.username ?? ''}', style: TextStyle(color: subtitleColor)),
+                      subtitle: Text(
+                        '@${friend.username ?? ''}',
+                        style: TextStyle(color: subtitleColor),
+                      ),
                       trailing: Checkbox(
                         value: isSelected,
                         onChanged: (value) {

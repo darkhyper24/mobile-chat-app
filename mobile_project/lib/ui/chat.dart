@@ -188,11 +188,15 @@ class _ChatPageState extends State<ChatPage> {
     final currentUserId = context.read<AuthProvider>().currentUser?.userId;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final backgroundColor = isDark ? const Color(0xFF121212) : const Color(0xFFF8F8F8);
+    final backgroundColor = isDark
+        ? const Color(0xFF121212)
+        : const Color(0xFFF8F8F8);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
     final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey;
-    final inputFillColor = isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF5F5F5);
+    final inputFillColor = isDark
+        ? const Color(0xFF2D2D2D)
+        : const Color(0xFFF5F5F5);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -210,7 +214,7 @@ class _ChatPageState extends State<ChatPage> {
               tag: 'avatar_${widget.partner.userId}',
               child: CircleAvatar(
                 radius: 18,
-                backgroundColor: isDark 
+                backgroundColor: isDark
                     ? const Color(0xFF3D3D3D)
                     : const Color(0xFFE8DEF8),
                 backgroundImage: widget.partner.profilePic != null
@@ -220,7 +224,7 @@ class _ChatPageState extends State<ChatPage> {
                     ? Text(
                         _getInitials(widget.partner),
                         style: TextStyle(
-                          color: isDark 
+                          color: isDark
                               ? const Color(0xFFD0BCFF)
                               : const Color(0xFF6750A4),
                           fontWeight: FontWeight.bold,

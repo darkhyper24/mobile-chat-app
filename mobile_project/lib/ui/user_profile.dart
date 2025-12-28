@@ -169,8 +169,10 @@ class UserProfilePage extends StatelessWidget {
     final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
     final labelColor = isDark ? Colors.grey.shade400 : Colors.grey.shade600;
     final textColor = isDark ? Colors.white : Colors.black;
-    final primaryColor = isDark ? const Color(0xFFD0BCFF) : const Color(0xFF6750A4);
-    
+    final primaryColor = isDark
+        ? const Color(0xFFD0BCFF)
+        : const Color(0xFF6750A4);
+
     final isNotSet = value == 'Not set';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -187,10 +189,7 @@ class UserProfilePage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: TextStyle(fontSize: 12, color: labelColor),
-                ),
+                Text(label, style: TextStyle(fontSize: 12, color: labelColor)),
                 const SizedBox(height: 4),
                 Text(
                   value,

@@ -77,7 +77,9 @@ class _SignupPageState extends State<SignupPage> {
     final backgroundColor = isDark ? const Color(0xFF121212) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
     final subtitleColor = isDark ? Colors.grey.shade400 : Colors.grey;
-    final inputFillColor = isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF5F5F5);
+    final inputFillColor = isDark
+        ? const Color(0xFF2D2D2D)
+        : const Color(0xFFF5F5F5);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -96,7 +98,7 @@ class _SignupPageState extends State<SignupPage> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: isDark 
+                      color: isDark
                           ? const Color(0xFF3D3D3D)
                           : const Color(0xFFE8DEF8),
                       borderRadius: BorderRadius.circular(20),
@@ -104,7 +106,7 @@ class _SignupPageState extends State<SignupPage> {
                     child: Icon(
                       Icons.chat_bubble,
                       size: 40,
-                      color: isDark 
+                      color: isDark
                           ? const Color(0xFFD0BCFF)
                           : const Color(0xFF6750A4),
                     ),
@@ -292,7 +294,9 @@ class _SignupPageState extends State<SignupPage> {
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     initialValue: _selectedGender,
-                    dropdownColor: isDark ? const Color(0xFF2D2D2D) : Colors.white,
+                    dropdownColor: isDark
+                        ? const Color(0xFF2D2D2D)
+                        : Colors.white,
                     style: TextStyle(color: textColor),
                     decoration: InputDecoration(
                       filled: true,
@@ -306,7 +310,10 @@ class _SignupPageState extends State<SignupPage> {
                         vertical: 16,
                       ),
                     ),
-                    hint: Text('Select your gender', style: TextStyle(color: subtitleColor)),
+                    hint: Text(
+                      'Select your gender',
+                      style: TextStyle(color: subtitleColor),
+                    ),
                     items: const [
                       DropdownMenuItem(value: 'Male', child: Text('Male')),
                       DropdownMenuItem(value: 'Female', child: Text('Female')),
