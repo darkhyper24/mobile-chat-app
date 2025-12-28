@@ -3,10 +3,14 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import '../providers/friends_provider.dart';
+import '../providers/group_provider.dart';
 import '../services/message_service.dart';
+import '../services/group_service.dart';
 import '../models/users.dart';
 import 'chat.dart';
 import 'profile.dart';
+import 'group_chat.dart';
+import 'create_group.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,6 +21,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
+  int _chatTabIndex = 0; // 0 = Direct, 1 = Groups
   String _searchQuery = '';
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
@@ -33,6 +38,7 @@ class _HomePageState extends State<HomePage> {
     if (userId != null) {
       context.read<ChatProvider>().loadConversations(userId);
       context.read<FriendsProvider>().loadFriends(userId);
+      context.read<GroupProvider>().loadGroupConversations(userId);
     }
   }
 
@@ -94,6 +100,26 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _openGroupChat(GroupConversation groupConv) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GroupChatPage(group: groupConv.group),
+      ),
+    ).then((_) {
+      _loadData();
+    });
+  }
+
+  void _createNewGroup() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CreateGroupPage()),
+    ).then((_) {
+      _loadData();
+    });
+  }
+
   String _getInitials(User user) {
     final first = user.firstname?.isNotEmpty == true
         ? user.firstname![0].toUpperCase()
@@ -117,6 +143,15 @@ class _HomePageState extends State<HomePage> {
     } else {
       return '${dateTime.day}/${dateTime.month}';
     }
+  }
+
+  String _getGroupInitials(String? name) {
+    if (name == null || name.isEmpty) return 'G';
+    final words = name.split(' ');
+    if (words.length >= 2) {
+      return '${words[0][0]}${words[1][0]}'.toUpperCase();
+    }
+    return name[0].toUpperCase();
   }
 
   @override
@@ -243,12 +278,25 @@ class _HomePageState extends State<HomePage> {
 
               const Divider(height: 1),
 
-              // Conversations Section
-              _buildConversationsSection(),
+              // Chat Type Tabs
+              _buildChatTabs(),
+
+              // Conversations Section based on selected tab
+              if (_chatTabIndex == 0)
+                _buildConversationsSection()
+              else
+                _buildGroupsSection(),
             ],
           ),
         ),
       ),
+      floatingActionButton: _chatTabIndex == 1
+          ? FloatingActionButton(
+              onPressed: _createNewGroup,
+              backgroundColor: const Color(0xFF6750A4),
+              child: const Icon(Icons.group_add, color: Colors.white),
+            )
+          : null,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onNavItemTapped,
@@ -584,6 +632,257 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       onTap: () => _openChat(participant),
+    );
+  }
+
+  Widget _buildChatTabs() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _chatTabIndex = 0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _chatTabIndex == 0
+                      ? const Color(0xFF6750A4)
+                      : Colors.grey.shade200,
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(25),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.chat_bubble_outline,
+                      size: 18,
+                      color: _chatTabIndex == 0 ? Colors.white : Colors.grey,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Direct',
+                      style: TextStyle(
+                        color: _chatTabIndex == 0 ? Colors.white : Colors.grey,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _chatTabIndex = 1),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _chatTabIndex == 1
+                      ? const Color(0xFF6750A4)
+                      : Colors.grey.shade200,
+                  borderRadius: const BorderRadius.horizontal(
+                    right: Radius.circular(25),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.group_outlined,
+                      size: 18,
+                      color: _chatTabIndex == 1 ? Colors.white : Colors.grey,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Groups',
+                      style: TextStyle(
+                        color: _chatTabIndex == 1 ? Colors.white : Colors.grey,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGroupsSection() {
+    return Consumer<GroupProvider>(
+      builder: (context, groupProvider, _) {
+        if (groupProvider.isLoading) {
+          return const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(
+              child: CircularProgressIndicator(color: Color(0xFF6750A4)),
+            ),
+          );
+        }
+
+        final groups = groupProvider.groupConversations;
+
+        // Filter based on search query
+        final filteredGroups = _searchQuery.isEmpty
+            ? groups
+            : groups.where((g) {
+                final name = g.group.name?.toLowerCase() ?? '';
+                return name.contains(_searchQuery.toLowerCase());
+              }).toList();
+
+        if (filteredGroups.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(32),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.group_outlined,
+                    size: 64,
+                    color: Colors.grey.shade300,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _searchQuery.isEmpty ? 'No groups yet' : 'No groups found',
+                    style: const TextStyle(color: Colors.grey, fontSize: 16),
+                  ),
+                  if (_searchQuery.isEmpty) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Create a group to start chatting!',
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _createNewGroup,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create Group'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6750A4),
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                'Group Chats',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: filteredGroups.length,
+              itemBuilder: (context, index) {
+                return _buildGroupItem(filteredGroups[index]);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildGroupItem(GroupConversation groupConv) {
+    final group = groupConv.group;
+    final lastMessage = groupConv.lastMessage;
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16.0,
+        vertical: 8.0,
+      ),
+      leading: CircleAvatar(
+        backgroundColor: const Color(0xFFE8DEF8),
+        radius: 28,
+        backgroundImage: group.image != null
+            ? NetworkImage(group.image!)
+            : null,
+        child: group.image == null
+            ? Text(
+                _getGroupInitials(group.name),
+                style: const TextStyle(
+                  color: Color(0xFF6750A4),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              )
+            : null,
+      ),
+      title: Text(
+        group.name ?? 'Group',
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+      ),
+      subtitle: Row(
+        children: [
+          Icon(Icons.group, size: 14, color: Colors.grey.shade500),
+          const SizedBox(width: 4),
+          Text(
+            '${groupConv.memberCount} members',
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+          ),
+          if (lastMessage != null) ...[
+            Text(' • ', style: TextStyle(color: Colors.grey.shade500)),
+            Expanded(
+              child: Text(
+                lastMessage.message ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+              ),
+            ),
+          ],
+        ],
+      ),
+      trailing: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (lastMessage != null)
+            Text(
+              _formatTime(lastMessage.createdAt),
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          if (groupConv.unreadCount > 0) ...[
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                color: Color(0xFF6750A4),
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                '${groupConv.unreadCount}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+      onTap: () => _openGroupChat(groupConv),
     );
   }
 }
