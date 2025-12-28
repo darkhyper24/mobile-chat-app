@@ -35,49 +35,162 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showAppearanceDialog() {
-    showDialog(
+    showGeneralDialog(
       context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
+      barrierDismissible: true,
+      barrierLabel: 'Appearance',
+      transitionDuration: const Duration(milliseconds: 250),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Container();
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curvedAnimation = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
+        return ScaleTransition(
+          scale: Tween<double>(begin: 0.9, end: 1.0).animate(curvedAnimation),
+          child: FadeTransition(
+            opacity: curvedAnimation,
+            child: StatefulBuilder(
+              builder: (context, setDialogState) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  title: const Text(
+                    'Appearance',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Dark Theme',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          Switch(
+                            value: _isDarkTheme,
+                            activeThumbColor: const Color(0xFF6750A4),
+                            onChanged: (value) {
+                              setDialogState(() {
+                                _isDarkTheme = value;
+                              });
+                              setState(() {
+                                _isDarkTheme = value;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    _isDarkTheme
+                                        ? 'Dark theme enabled'
+                                        : 'Light theme enabled',
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Close',
+                        style: TextStyle(color: Color(0xFF6750A4)),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAboutDialog() {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'About',
+      transitionDuration: const Duration(milliseconds: 250),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Container();
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curvedAnimation = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
+        return ScaleTransition(
+          scale: Tween<double>(begin: 0.9, end: 1.0).animate(curvedAnimation),
+          child: FadeTransition(
+            opacity: curvedAnimation,
+            child: AlertDialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
               title: const Text(
-                'Appearance',
+                'About',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Dark Theme', style: TextStyle(fontSize: 16)),
-                      Switch(
-                        value: _isDarkTheme,
-                        activeThumbColor: const Color(0xFF6750A4),
-                        onChanged: (value) {
-                          setDialogState(() {
-                            _isDarkTheme = value;
-                          });
-                          setState(() {
-                            _isDarkTheme = value;
-                          });
-                          // TODO: Implement theme switching logic
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                _isDarkTheme
-                                    ? 'Dark theme enabled'
-                                    : 'Light theme enabled',
-                              ),
-                            ),
-                          );
-                        },
+                  // App Icon with animation
+                  Center(
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.elasticOut,
+                      builder: (context, value, child) {
+                        return Transform.scale(scale: value, child: child);
+                      },
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8DEF8),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Icon(
+                          Icons.chat_bubble,
+                          size: 40,
+                          color: Color(0xFF6750A4),
+                        ),
                       ),
-                    ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Center(
+                    child: Text(
+                      'ZC Chat App',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      'Version $_appVersion',
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'A modern chat application for seamless communication.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14),
                   ),
                 ],
               ),
@@ -90,76 +203,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ),
               ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showAboutDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Text(
-            'About',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // App Icon
-              Center(
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8DEF8),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Icon(
-                    Icons.chat_bubble,
-                    size: 40,
-                    color: Color(0xFF6750A4),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Center(
-                child: Text(
-                  'ChatApp',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  'Version $_appVersion',
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'A modern chat application for seamless communication.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Close',
-                style: TextStyle(color: Color(0xFF6750A4)),
-              ),
             ),
-          ],
+          ),
         );
       },
     );
@@ -421,60 +466,12 @@ class _SettingsPageState extends State<SettingsPage> {
     required VoidCallback onTap,
     bool isDestructive = false,
   }) {
-    return InkWell(
+    return _AnimatedSettingsItem(
+      icon: icon,
+      title: title,
+      subtitle: subtitle,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isDestructive
-                    ? Colors.red.withOpacity(0.1)
-                    : const Color(0xFFE8DEF8),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color: isDestructive ? Colors.red : const Color(0xFF6750A4),
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: isDestructive ? Colors.red : Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: isDestructive
-                          ? Colors.red.withOpacity(0.7)
-                          : Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right,
-              color: isDestructive ? Colors.red : Colors.grey,
-            ),
-          ],
-        ),
-      ),
+      isDestructive: isDestructive,
     );
   }
 
@@ -485,6 +482,134 @@ class _SettingsPageState extends State<SettingsPage> {
         height: 1,
         thickness: 1,
         color: Colors.grey.withOpacity(0.1),
+      ),
+    );
+  }
+}
+
+/// Animated settings item with tap feedback
+class _AnimatedSettingsItem extends StatefulWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool isDestructive;
+
+  const _AnimatedSettingsItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.isDestructive = false,
+  });
+
+  @override
+  State<_AnimatedSettingsItem> createState() => _AnimatedSettingsItemState();
+}
+
+class _AnimatedSettingsItemState extends State<_AnimatedSettingsItem> {
+  double _scale = 1.0;
+  Color _backgroundColor = Colors.transparent;
+
+  void _onTapDown(TapDownDetails details) {
+    setState(() {
+      _scale = 0.97;
+      _backgroundColor = Colors.grey.withOpacity(0.05);
+    });
+  }
+
+  void _onTapUp(TapUpDetails details) {
+    setState(() {
+      _scale = 1.0;
+      _backgroundColor = Colors.transparent;
+    });
+    widget.onTap();
+  }
+
+  void _onTapCancel() {
+    setState(() {
+      _scale = 1.0;
+      _backgroundColor = Colors.transparent;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          decoration: BoxDecoration(
+            color: _backgroundColor,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: widget.isDestructive
+                        ? Colors.red.withOpacity(0.1)
+                        : const Color(0xFFE8DEF8),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    widget.icon,
+                    color: widget.isDestructive
+                        ? Colors.red
+                        : const Color(0xFF6750A4),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: widget.isDestructive
+                              ? Colors.red
+                              : Colors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.subtitle,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: widget.isDestructive
+                              ? Colors.red.withOpacity(0.7)
+                              : Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                AnimatedRotation(
+                  turns: _scale < 1.0 ? 0.02 : 0.0,
+                  duration: const Duration(milliseconds: 100),
+                  child: Icon(
+                    Icons.chevron_right,
+                    color: widget.isDestructive ? Colors.red : Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

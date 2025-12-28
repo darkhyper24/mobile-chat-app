@@ -102,7 +102,7 @@ class _SignupPageState extends State<SignupPage> {
 
                   // Title
                   const Text(
-                    'ChatApp',
+                    'ZC Chat App',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,

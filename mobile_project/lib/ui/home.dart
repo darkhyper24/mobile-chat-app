@@ -243,7 +243,7 @@ class _HomePageState extends State<HomePage> {
                   alignment: Alignment.centerLeft,
                   key: ValueKey('Title'),
                   child: Text(
-                    'ChatApp',
+                    'ZC Chat App',
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 24,
@@ -412,58 +412,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildFriendAvatar(User friend) {
-    return GestureDetector(
+    return _AnimatedFriendAvatar(
+      friend: friend,
       onTap: () => _openChat(friend),
-      child: Container(
-        width: 72,
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        child: Column(
-          children: [
-            Stack(
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: const Color(0xFFE8DEF8),
-                  backgroundImage: friend.profilePic != null
-                      ? NetworkImage(friend.profilePic!)
-                      : null,
-                  child: friend.profilePic == null
-                      ? Text(
-                          _getInitials(friend),
-                          style: const TextStyle(
-                            color: Color(0xFF6750A4),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        )
-                      : null,
-                ),
-                Positioned(
-                  right: 2,
-                  bottom: 2,
-                  child: Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              friend.firstname ?? 'User',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+      getInitials: _getInitials,
     );
   }
 
@@ -548,93 +500,12 @@ class _HomePageState extends State<HomePage> {
     final currentUserId = context.read<AuthProvider>().currentUser?.userId;
     final isSentByMe = lastMessage.senderId == currentUserId;
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16.0,
-        vertical: 8.0,
-      ),
-      leading: Stack(
-        children: [
-          CircleAvatar(
-            backgroundColor: const Color(0xFFE8DEF8),
-            radius: 28,
-            backgroundImage: participant.profilePic != null
-                ? NetworkImage(participant.profilePic!)
-                : null,
-            child: participant.profilePic == null
-                ? Text(
-                    _getInitials(participant),
-                    style: const TextStyle(
-                      color: Color(0xFF6750A4),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  )
-                : null,
-          ),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: Container(
-              width: 14,
-              height: 14,
-              decoration: BoxDecoration(
-                color: Colors.green,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-            ),
-          ),
-        ],
-      ),
-      title: Text(
-        '${participant.firstname ?? ''} ${participant.lastname ?? ''}'.trim(),
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-      ),
-      subtitle: Row(
-        children: [
-          if (isSentByMe)
-            const Icon(Icons.done_all, size: 16, color: Color(0xFF6750A4)),
-          if (isSentByMe) const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              lastMessage.message ?? '',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-            ),
-          ),
-        ],
-      ),
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            _formatTime(lastMessage.createdAt),
-            style: const TextStyle(color: Colors.grey, fontSize: 12),
-          ),
-          if (conversation.unreadCount > 0) ...[
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                color: Color(0xFF6750A4),
-                shape: BoxShape.circle,
-              ),
-              child: Text(
-                '${conversation.unreadCount}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
+    return _AnimatedConversationItem(
+      conversation: conversation,
+      isSentByMe: isSentByMe,
       onTap: () => _openChat(participant),
+      getInitials: _getInitials,
+      formatTime: _formatTime,
     );
   }
 
@@ -644,71 +515,21 @@ class _HomePageState extends State<HomePage> {
       child: Row(
         children: [
           Expanded(
-            child: GestureDetector(
+            child: _AnimatedTabButton(
+              isSelected: _chatTabIndex == 0,
+              icon: Icons.chat_bubble_outline,
+              label: 'Direct',
               onTap: () => setState(() => _chatTabIndex = 0),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: _chatTabIndex == 0
-                      ? const Color(0xFF6750A4)
-                      : Colors.grey.shade200,
-                  borderRadius: const BorderRadius.horizontal(
-                    left: Radius.circular(25),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.chat_bubble_outline,
-                      size: 18,
-                      color: _chatTabIndex == 0 ? Colors.white : Colors.grey,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Direct',
-                      style: TextStyle(
-                        color: _chatTabIndex == 0 ? Colors.white : Colors.grey,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              isLeft: true,
             ),
           ),
           Expanded(
-            child: GestureDetector(
+            child: _AnimatedTabButton(
+              isSelected: _chatTabIndex == 1,
+              icon: Icons.group_outlined,
+              label: 'Groups',
               onTap: () => setState(() => _chatTabIndex = 1),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: _chatTabIndex == 1
-                      ? const Color(0xFF6750A4)
-                      : Colors.grey.shade200,
-                  borderRadius: const BorderRadius.horizontal(
-                    right: Radius.circular(25),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.group_outlined,
-                      size: 18,
-                      color: _chatTabIndex == 1 ? Colors.white : Colors.grey,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Groups',
-                      style: TextStyle(
-                        color: _chatTabIndex == 1 ? Colors.white : Colors.grey,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              isLeft: false,
             ),
           ),
         ],
@@ -809,83 +630,483 @@ class _HomePageState extends State<HomePage> {
     final group = groupConv.group;
     final lastMessage = groupConv.lastMessage;
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16.0,
-        vertical: 8.0,
-      ),
-      leading: CircleAvatar(
-        backgroundColor: const Color(0xFFE8DEF8),
-        radius: 28,
-        backgroundImage: group.image != null
-            ? NetworkImage(group.image!)
-            : null,
-        child: group.image == null
-            ? Text(
-                _getGroupInitials(group.name),
-                style: const TextStyle(
-                  color: Color(0xFF6750A4),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              )
-            : null,
-      ),
-      title: Text(
-        group.name ?? 'Group',
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-      ),
-      subtitle: Row(
-        children: [
-          Icon(Icons.group, size: 14, color: Colors.grey.shade500),
-          const SizedBox(width: 4),
-          Text(
-            '${groupConv.memberCount} members',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+    return _AnimatedGroupItem(
+      groupConv: groupConv,
+      onTap: () => _openGroupChat(groupConv),
+      getGroupInitials: _getGroupInitials,
+      formatTime: _formatTime,
+    );
+  }
+}
+
+/// Animated tab button with smooth color transitions
+class _AnimatedTabButton extends StatefulWidget {
+  final bool isSelected;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isLeft;
+
+  const _AnimatedTabButton({
+    required this.isSelected,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    required this.isLeft,
+  });
+
+  @override
+  State<_AnimatedTabButton> createState() => _AnimatedTabButtonState();
+}
+
+class _AnimatedTabButtonState extends State<_AnimatedTabButton> {
+  double _scale = 1.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _scale = 0.95),
+      onTapUp: (_) {
+        setState(() => _scale = 1.0);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _scale = 1.0),
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: widget.isSelected
+                ? const Color(0xFF6750A4)
+                : Colors.grey.shade200,
+            borderRadius: BorderRadius.horizontal(
+              left: widget.isLeft ? const Radius.circular(25) : Radius.zero,
+              right: !widget.isLeft ? const Radius.circular(25) : Radius.zero,
+            ),
           ),
-          if (lastMessage != null) ...[
-            Text(' • ', style: TextStyle(color: Colors.grey.shade500)),
-            Expanded(
-              child: Text(
-                lastMessage.message ?? '',
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  widget.icon,
+                  key: ValueKey(widget.isSelected),
+                  size: 18,
+                  color: widget.isSelected ? Colors.white : Colors.grey,
+                ),
+              ),
+              const SizedBox(width: 8),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: TextStyle(
+                  color: widget.isSelected ? Colors.white : Colors.grey,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+                child: Text(widget.label),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Animated friend avatar with tap feedback
+class _AnimatedFriendAvatar extends StatefulWidget {
+  final User friend;
+  final VoidCallback onTap;
+  final String Function(User) getInitials;
+
+  const _AnimatedFriendAvatar({
+    required this.friend,
+    required this.onTap,
+    required this.getInitials,
+  });
+
+  @override
+  State<_AnimatedFriendAvatar> createState() => _AnimatedFriendAvatarState();
+}
+
+class _AnimatedFriendAvatarState extends State<_AnimatedFriendAvatar> {
+  double _scale = 1.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _scale = 0.9),
+      onTapUp: (_) {
+        setState(() => _scale = 1.0);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _scale = 1.0),
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
+        child: Container(
+          width: 72,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          child: Column(
+            children: [
+              Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: const Color(0xFFE8DEF8),
+                    backgroundImage: widget.friend.profilePic != null
+                        ? NetworkImage(widget.friend.profilePic!)
+                        : null,
+                    child: widget.friend.profilePic == null
+                        ? Text(
+                            widget.getInitials(widget.friend),
+                            style: const TextStyle(
+                              color: Color(0xFF6750A4),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          )
+                        : null,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                widget.friend.firstname ?? 'User',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                textAlign: TextAlign.center,
               ),
-            ),
-          ],
-        ],
+            ],
+          ),
+        ),
       ),
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (lastMessage != null)
-            Text(
-              _formatTime(lastMessage.createdAt),
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+    );
+  }
+}
+
+/// Animated conversation item with swipe and tap feedback
+class _AnimatedConversationItem extends StatefulWidget {
+  final Conversation conversation;
+  final bool isSentByMe;
+  final VoidCallback onTap;
+  final String Function(User) getInitials;
+  final String Function(DateTime?) formatTime;
+
+  const _AnimatedConversationItem({
+    required this.conversation,
+    required this.isSentByMe,
+    required this.onTap,
+    required this.getInitials,
+    required this.formatTime,
+  });
+
+  @override
+  State<_AnimatedConversationItem> createState() =>
+      _AnimatedConversationItemState();
+}
+
+class _AnimatedConversationItemState extends State<_AnimatedConversationItem> {
+  double _scale = 1.0;
+  double _offsetX = 0.0;
+  Color _backgroundColor = Colors.transparent;
+
+  void _onTapDown(TapDownDetails details) {
+    setState(() {
+      _scale = 0.98;
+      _backgroundColor = Colors.grey.withOpacity(0.05);
+    });
+  }
+
+  void _onTapUp(TapUpDetails details) {
+    setState(() {
+      _scale = 1.0;
+      _backgroundColor = Colors.transparent;
+    });
+    widget.onTap();
+  }
+
+  void _onTapCancel() {
+    setState(() {
+      _scale = 1.0;
+      _backgroundColor = Colors.transparent;
+    });
+  }
+
+  void _onPanUpdate(DragUpdateDetails details) {
+    setState(() {
+      _offsetX = (_offsetX + details.delta.dx).clamp(-50.0, 50.0);
+    });
+  }
+
+  void _onPanEnd(DragEndDetails details) {
+    setState(() {
+      _offsetX = 0.0;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final participant = widget.conversation.participant;
+    final lastMessage = widget.conversation.lastMessage;
+
+    return GestureDetector(
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      onHorizontalDragUpdate: _onPanUpdate,
+      onHorizontalDragEnd: _onPanEnd,
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+          transform: Matrix4.translationValues(_offsetX, 0, 0),
+          decoration: BoxDecoration(color: _backgroundColor),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
             ),
-          if (groupConv.unreadCount > 0) ...[
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                color: Color(0xFF6750A4),
-                shape: BoxShape.circle,
+            leading: Hero(
+              tag: 'avatar_${participant.userId}',
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: const Color(0xFFE8DEF8),
+                    radius: 28,
+                    backgroundImage: participant.profilePic != null
+                        ? NetworkImage(participant.profilePic!)
+                        : null,
+                    child: participant.profilePic == null
+                        ? Text(
+                            widget.getInitials(participant),
+                            style: const TextStyle(
+                              color: Color(0xFF6750A4),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          )
+                        : null,
+                  ),
+                ],
               ),
-              child: Text(
-                '${groupConv.unreadCount}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
+            ),
+            title: Text(
+              '${participant.firstname ?? ''} ${participant.lastname ?? ''}'
+                  .trim(),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+            ),
+            subtitle: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    lastMessage.message ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                  ),
                 ),
+              ],
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  widget.formatTime(lastMessage.createdAt),
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+                if (widget.conversation.unreadCount > 0) ...[
+                  const SizedBox(height: 4),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.elasticOut,
+                    builder: (context, value, child) {
+                      return Transform.scale(scale: value, child: child);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF6750A4),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '${widget.conversation.unreadCount}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Animated group item with tap feedback
+class _AnimatedGroupItem extends StatefulWidget {
+  final GroupConversation groupConv;
+  final VoidCallback onTap;
+  final String Function(String?) getGroupInitials;
+  final String Function(DateTime?) formatTime;
+
+  const _AnimatedGroupItem({
+    required this.groupConv,
+    required this.onTap,
+    required this.getGroupInitials,
+    required this.formatTime,
+  });
+
+  @override
+  State<_AnimatedGroupItem> createState() => _AnimatedGroupItemState();
+}
+
+class _AnimatedGroupItemState extends State<_AnimatedGroupItem> {
+  double _scale = 1.0;
+  Color _backgroundColor = Colors.transparent;
+
+  @override
+  Widget build(BuildContext context) {
+    final group = widget.groupConv.group;
+    final lastMessage = widget.groupConv.lastMessage;
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() {
+        _scale = 0.98;
+        _backgroundColor = Colors.grey.withOpacity(0.05);
+      }),
+      onTapUp: (_) {
+        setState(() {
+          _scale = 1.0;
+          _backgroundColor = Colors.transparent;
+        });
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() {
+        _scale = 1.0;
+        _backgroundColor = Colors.transparent;
+      }),
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          decoration: BoxDecoration(color: _backgroundColor),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
+            leading: Hero(
+              tag: 'group_${group.groupId}',
+              child: CircleAvatar(
+                backgroundColor: const Color(0xFFE8DEF8),
+                radius: 28,
+                backgroundImage: group.image != null
+                    ? NetworkImage(group.image!)
+                    : null,
+                child: group.image == null
+                    ? Text(
+                        widget.getGroupInitials(group.name),
+                        style: const TextStyle(
+                          color: Color(0xFF6750A4),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      )
+                    : null,
               ),
             ),
-          ],
-        ],
+            title: Text(
+              group.name ?? 'Group',
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+            ),
+            subtitle: Row(
+              children: [
+                Icon(Icons.group, size: 14, color: Colors.grey.shade500),
+                const SizedBox(width: 4),
+                Text(
+                  '${widget.groupConv.memberCount} members',
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                ),
+                if (lastMessage != null) ...[
+                  Text(' • ', style: TextStyle(color: Colors.grey.shade500)),
+                  Expanded(
+                    child: Text(
+                      lastMessage.message ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (lastMessage != null)
+                  Text(
+                    widget.formatTime(lastMessage.createdAt),
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                if (widget.groupConv.unreadCount > 0) ...[
+                  const SizedBox(height: 4),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.elasticOut,
+                    builder: (context, value, child) {
+                      return Transform.scale(scale: value, child: child);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF6750A4),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '${widget.groupConv.unreadCount}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
-      onTap: () => _openGroupChat(groupConv),
     );
   }
 }

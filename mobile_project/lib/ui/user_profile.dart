@@ -124,7 +124,9 @@ class UserProfilePage extends StatelessWidget {
                   _buildReadOnlyField(
                     icon: Icons.info_outline,
                     label: 'About',
-                    value: user.bio ?? "Hey there! I'm using ZC Chat App",
+                    value: (user.bio != null && user.bio!.isNotEmpty)
+                        ? user.bio!
+                        : "Hey there! I'm using ZC Chat App",
                   ),
                   const SizedBox(height: 16),
 
@@ -148,6 +150,7 @@ class UserProfilePage extends StatelessWidget {
     required String label,
     required String value,
   }) {
+    final isNotSet = value == 'Not set';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -173,9 +176,7 @@ class UserProfilePage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: value == 'Not set'
-                        ? Colors.grey.shade400
-                        : Colors.black,
+                    color: isNotSet ? Colors.grey.shade400 : Colors.black,
                   ),
                 ),
               ],

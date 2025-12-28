@@ -199,22 +199,25 @@ class _ChatPageState extends State<ChatPage> {
         titleSpacing: 0,
         title: Row(
           children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: const Color(0xFFE8DEF8),
-              backgroundImage: widget.partner.profilePic != null
-                  ? NetworkImage(widget.partner.profilePic!)
-                  : null,
-              child: widget.partner.profilePic == null
-                  ? Text(
-                      _getInitials(widget.partner),
-                      style: const TextStyle(
-                        color: Color(0xFF6750A4),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    )
-                  : null,
+            Hero(
+              tag: 'avatar_${widget.partner.userId}',
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: const Color(0xFFE8DEF8),
+                backgroundImage: widget.partner.profilePic != null
+                    ? NetworkImage(widget.partner.profilePic!)
+                    : null,
+                child: widget.partner.profilePic == null
+                    ? Text(
+                        _getInitials(widget.partner),
+                        style: const TextStyle(
+                          color: Color(0xFF6750A4),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      )
+                    : null,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -407,30 +410,9 @@ class _ChatPageState extends State<ChatPage> {
                 const SizedBox(width: 8),
                 Consumer<ChatProvider>(
                   builder: (context, chatProvider, _) {
-                    return Container(
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF6750A4),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        onPressed: chatProvider.isSending ? null : _sendMessage,
-                        icon: chatProvider.isSending
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
-                                ),
-                              )
-                            : const Icon(
-                                Icons.send,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                      ),
+                    return _AnimatedSendButton(
+                      isSending: chatProvider.isSending,
+                      onPressed: _sendMessage,
                     );
                   },
                 ),
@@ -488,7 +470,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 }
 
-class _MessageBubble extends StatelessWidget {
+class _MessageBubble extends StatefulWidget {
   final Message message;
   final bool isMe;
   final String time;
@@ -500,74 +482,94 @@ class _MessageBubble extends StatelessWidget {
   });
 
   @override
+  State<_MessageBubble> createState() => _MessageBubbleState();
+}
+
+class _MessageBubbleState extends State<_MessageBubble> {
+  bool _isVisible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Trigger entrance animation
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (mounted) {
+        setState(() => _isVisible = true);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isLocation =
-        message.message?.startsWith('https://www.google.com/maps/search/') ??
+        widget.message.message?.startsWith(
+          'https://www.google.com/maps/search/',
+        ) ??
         false;
 
-    return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: EdgeInsets.only(
-          top: 4,
-          bottom: 4,
-          left: isMe ? 64 : 0,
-          right: isMe ? 0 : 64,
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isMe ? const Color(0xFF6750A4) : Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: isMe
-                ? const Radius.circular(16)
-                : const Radius.circular(4),
-            bottomRight: isMe
-                ? const Radius.circular(4)
-                : const Radius.circular(16),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+    return AnimatedOpacity(
+      opacity: _isVisible ? 1.0 : 0.0,
+      duration: const Duration(milliseconds: 200),
+      child: AnimatedSlide(
+        offset: _isVisible ? Offset.zero : Offset(widget.isMe ? 0.2 : -0.2, 0),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        child: Align(
+          alignment: widget.isMe ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            margin: EdgeInsets.only(
+              top: 4,
+              bottom: 4,
+              left: widget.isMe ? 64 : 0,
+              right: widget.isMe ? 0 : 64,
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: isMe
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
-          children: [
-            if (isLocation)
-              _buildLocationContent(context)
-            else
-              Text(
-                message.message ?? '',
-                style: TextStyle(
-                  color: isMe ? Colors.white : Colors.black87,
-                  fontSize: 15,
-                ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: widget.isMe ? const Color(0xFF6750A4) : Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(16),
+                topRight: const Radius.circular(16),
+                bottomLeft: widget.isMe
+                    ? const Radius.circular(16)
+                    : const Radius.circular(4),
+                bottomRight: widget.isMe
+                    ? const Radius.circular(4)
+                    : const Radius.circular(16),
               ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisSize: MainAxisSize.min,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: widget.isMe
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
+                if (isLocation)
+                  _buildLocationContent(context)
+                else
+                  Text(
+                    widget.message.message ?? '',
+                    style: TextStyle(
+                      color: widget.isMe ? Colors.white : Colors.black87,
+                      fontSize: 15,
+                    ),
+                  ),
+                const SizedBox(height: 4),
                 Text(
-                  time,
+                  widget.time,
                   style: TextStyle(
-                    color: isMe ? Colors.white70 : Colors.grey,
+                    color: widget.isMe ? Colors.white70 : Colors.grey,
                     fontSize: 11,
                   ),
                 ),
-                if (isMe) ...[
-                  const SizedBox(width: 4),
-                  Icon(Icons.done_all, size: 14, color: Colors.white70),
-                ],
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -576,7 +578,7 @@ class _MessageBubble extends StatelessWidget {
   Widget _buildLocationContent(BuildContext context) {
     return GestureDetector(
       onTap: () async {
-        final url = Uri.parse(message.message!);
+        final url = Uri.parse(widget.message.message!);
         if (await canLaunchUrl(url)) {
           await launchUrl(url);
         }
@@ -584,17 +586,88 @@ class _MessageBubble extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.location_on, color: isMe ? Colors.white : Colors.red),
+          Icon(
+            Icons.location_on,
+            color: widget.isMe ? Colors.white : Colors.red,
+          ),
           const SizedBox(width: 8),
           Text(
             'Shared Location',
             style: TextStyle(
-              color: isMe ? Colors.white : Colors.black87,
+              color: widget.isMe ? Colors.white : Colors.black87,
               fontSize: 15,
               decoration: TextDecoration.underline,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Animated send button with tap feedback
+class _AnimatedSendButton extends StatefulWidget {
+  final bool isSending;
+  final VoidCallback onPressed;
+
+  const _AnimatedSendButton({required this.isSending, required this.onPressed});
+
+  @override
+  State<_AnimatedSendButton> createState() => _AnimatedSendButtonState();
+}
+
+class _AnimatedSendButtonState extends State<_AnimatedSendButton> {
+  double _scale = 1.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: widget.isSending ? null : (_) => setState(() => _scale = 0.85),
+      onTapUp: widget.isSending
+          ? null
+          : (_) {
+              setState(() => _scale = 1.0);
+              widget.onPressed();
+            },
+      onTapCancel: () => setState(() => _scale = 1.0),
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: widget.isSending
+                ? const Color(0xFF6750A4).withOpacity(0.7)
+                : const Color(0xFF6750A4),
+            shape: BoxShape.circle,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (child, animation) {
+                return ScaleTransition(scale: animation, child: child);
+              },
+              child: widget.isSending
+                  ? const SizedBox(
+                      key: ValueKey('loading'),
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Icon(
+                      Icons.send,
+                      key: ValueKey('send'),
+                      color: Colors.white,
+                      size: 20,
+                    ),
+            ),
+          ),
+        ),
       ),
     );
   }

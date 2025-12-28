@@ -224,49 +224,12 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: Column(
                     children: [
                       const SizedBox(height: 16),
-                      // Profile Picture
+                      // Profile Picture with animation
                       GestureDetector(
                         onTap: _changeProfilePicture,
-                        child: Stack(
-                          children: [
-                            CircleAvatar(
-                              radius: 60,
-                              backgroundColor: Colors.white,
-                              backgroundImage: user.profilePic != null
-                                  ? NetworkImage(user.profilePic!)
-                                  : null,
-                              child: user.profilePic == null
-                                  ? Text(
-                                      _getInitials(user),
-                                      style: const TextStyle(
-                                        fontSize: 40,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF6750A4),
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                            Positioned(
-                              right: 0,
-                              bottom: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: const Color(0xFF6750A4),
-                                    width: 2,
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.camera_alt,
-                                  color: Color(0xFF6750A4),
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                          ],
+                        child: _AnimatedProfilePicture(
+                          profilePic: user.profilePic,
+                          initials: _getInitials(user),
                         ),
                       ),
                     ],
@@ -423,64 +386,15 @@ class _ProfilePageState extends State<ProfilePage> {
     TextInputType? keyboardType,
     String placeholder = 'Not set',
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: const Color(0xFF6750A4), size: 24),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-                const SizedBox(height: 4),
-                isEditing
-                    ? TextField(
-                        controller: controller,
-                        autofocus: true,
-                        keyboardType: keyboardType,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      )
-                    : Text(
-                        controller.text.isEmpty ? placeholder : controller.text,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: controller.text.isEmpty
-                              ? Colors.grey.shade400
-                              : Colors.black,
-                        ),
-                      ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: Icon(
-              isEditing ? Icons.check : Icons.edit,
-              color: const Color(0xFF6750A4),
-              size: 20,
-            ),
-            onPressed: isEditing ? onSavePressed : onEditPressed,
-          ),
-        ],
-      ),
+    return _AnimatedProfileField(
+      icon: icon,
+      label: label,
+      controller: controller,
+      isEditing: isEditing,
+      onEditPressed: onEditPressed,
+      onSavePressed: onSavePressed,
+      keyboardType: keyboardType,
+      placeholder: placeholder,
     );
   }
 
@@ -521,6 +435,225 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           Icon(Icons.edit, color: Colors.grey.shade400, size: 20),
         ],
+      ),
+    );
+  }
+}
+
+/// Animated profile field with smooth transitions
+class _AnimatedProfileField extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final TextEditingController controller;
+  final bool isEditing;
+  final VoidCallback onEditPressed;
+  final VoidCallback onSavePressed;
+  final TextInputType? keyboardType;
+  final String placeholder;
+
+  const _AnimatedProfileField({
+    required this.icon,
+    required this.label,
+    required this.controller,
+    required this.isEditing,
+    required this.onEditPressed,
+    required this.onSavePressed,
+    this.keyboardType,
+    this.placeholder = 'Not set',
+  });
+
+  @override
+  State<_AnimatedProfileField> createState() => _AnimatedProfileFieldState();
+}
+
+class _AnimatedProfileFieldState extends State<_AnimatedProfileField> {
+  double _buttonScale = 1.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: widget.isEditing
+              ? const Color(0xFF6750A4)
+              : Colors.grey.shade300,
+          width: widget.isEditing ? 2 : 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            child: Icon(widget.icon, color: const Color(0xFF6750A4), size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.label,
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 4),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(opacity: animation, child: child);
+                  },
+                  child: widget.isEditing
+                      ? TextField(
+                          key: const ValueKey('editing'),
+                          controller: widget.controller,
+                          autofocus: true,
+                          keyboardType: widget.keyboardType,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        )
+                      : Text(
+                          widget.controller.text.isEmpty
+                              ? widget.placeholder
+                              : widget.controller.text,
+                          key: const ValueKey('display'),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: widget.controller.text.isEmpty
+                                ? Colors.grey.shade400
+                                : Colors.black,
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTapDown: (_) => setState(() => _buttonScale = 0.85),
+            onTapUp: (_) {
+              setState(() => _buttonScale = 1.0);
+              widget.isEditing
+                  ? widget.onSavePressed()
+                  : widget.onEditPressed();
+            },
+            onTapCancel: () => setState(() => _buttonScale = 1.0),
+            child: AnimatedScale(
+              scale: _buttonScale,
+              duration: const Duration(milliseconds: 100),
+              curve: Curves.easeInOut,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, animation) {
+                  return RotationTransition(
+                    turns: Tween(begin: 0.5, end: 1.0).animate(animation),
+                    child: ScaleTransition(scale: animation, child: child),
+                  );
+                },
+                child: Container(
+                  key: ValueKey(widget.isEditing),
+                  padding: const EdgeInsets.all(8),
+                  child: Icon(
+                    widget.isEditing ? Icons.check : Icons.edit,
+                    color: const Color(0xFF6750A4),
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Animated profile picture with tap feedback
+class _AnimatedProfilePicture extends StatefulWidget {
+  final String? profilePic;
+  final String initials;
+
+  const _AnimatedProfilePicture({
+    required this.profilePic,
+    required this.initials,
+  });
+
+  @override
+  State<_AnimatedProfilePicture> createState() =>
+      _AnimatedProfilePictureState();
+}
+
+class _AnimatedProfilePictureState extends State<_AnimatedProfilePicture> {
+  double _scale = 1.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _scale = 0.95),
+      onTapUp: (_) => setState(() => _scale = 1.0),
+      onTapCancel: () => setState(() => _scale = 1.0),
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
+        child: Stack(
+          children: [
+            CircleAvatar(
+              radius: 60,
+              backgroundColor: Colors.white,
+              backgroundImage: widget.profilePic != null
+                  ? NetworkImage(widget.profilePic!)
+                  : null,
+              child: widget.profilePic == null
+                  ? Text(
+                      widget.initials,
+                      style: const TextStyle(
+                        fontSize: 40,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF6750A4),
+                      ),
+                    )
+                  : null,
+            ),
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.elasticOut,
+                builder: (context, value, child) {
+                  return Transform.scale(scale: value, child: child);
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFF6750A4),
+                      width: 2,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt,
+                    color: Color(0xFF6750A4),
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

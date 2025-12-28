@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../providers/friends_provider.dart';
 import '../models/users.dart';
 import 'profile.dart';
+import 'chat.dart';
 
 class FriendsPage extends StatefulWidget {
   const FriendsPage({super.key});
@@ -361,11 +362,10 @@ class _FriendsPageState extends State<FriendsPage>
               return _FriendListItem(
                 friend: filteredFriends[index],
                 onMessage: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Opening chat with ${filteredFriends[index].firstname ?? 'friend'}',
-                      ),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatPage(partner: filteredFriends[index]),
                     ),
                   );
                 },
@@ -500,8 +500,8 @@ class _FriendsPageState extends State<FriendsPage>
   }
 }
 
-// Friend List Item Widget
-class _FriendListItem extends StatelessWidget {
+// Friend List Item Widget with animation
+class _FriendListItem extends StatefulWidget {
   final User friend;
   final VoidCallback onMessage;
   final VoidCallback onRemove;
@@ -512,121 +512,165 @@ class _FriendListItem extends StatelessWidget {
     required this.onRemove,
   });
 
+  @override
+  State<_FriendListItem> createState() => _FriendListItemState();
+}
+
+class _FriendListItemState extends State<_FriendListItem> {
+  double _scale = 1.0;
+  double _offsetX = 0.0;
+
   String _getInitials() {
-    final first = friend.firstname?.isNotEmpty == true
-        ? friend.firstname![0].toUpperCase()
+    final first = widget.friend.firstname?.isNotEmpty == true
+        ? widget.friend.firstname![0].toUpperCase()
         : '';
-    final last = friend.lastname?.isNotEmpty == true
-        ? friend.lastname![0].toUpperCase()
+    final last = widget.friend.lastname?.isNotEmpty == true
+        ? widget.friend.lastname![0].toUpperCase()
         : '';
     return '$first$last'.isEmpty ? '?' : '$first$last';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Stack(
-          children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: const Color(0xFFE8DEF8),
-              backgroundImage: friend.profilePic != null
-                  ? NetworkImage(friend.profilePic!)
-                  : null,
-              child: friend.profilePic == null
-                  ? Text(
-                      _getInitials(),
-                      style: const TextStyle(
-                        color: Color(0xFF6750A4),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    )
-                  : null,
-            ),
-            // Online status indicator (placeholder - you can implement real status)
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: Container(
-                width: 14,
-                height: 14,
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
+    return GestureDetector(
+      onHorizontalDragUpdate: (details) {
+        setState(() {
+          _offsetX = (_offsetX + details.delta.dx).clamp(-60.0, 60.0);
+        });
+      },
+      onHorizontalDragEnd: (details) {
+        setState(() => _offsetX = 0.0);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+        transform: Matrix4.translationValues(_offsetX, 0, 0),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+          leading: Stack(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: const Color(0xFFE8DEF8),
+                backgroundImage: widget.friend.profilePic != null
+                    ? NetworkImage(widget.friend.profilePic!)
+                    : null,
+                child: widget.friend.profilePic == null
+                    ? Text(
+                        _getInitials(),
+                        style: const TextStyle(
+                          color: Color(0xFF6750A4),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      )
+                    : null,
               ),
-            ),
-          ],
-        ),
-        title: Text(
-          '${friend.firstname ?? ''} ${friend.lastname ?? ''}'.trim(),
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-        ),
-        subtitle: Text(
-          '@${friend.username ?? 'user'}',
-          style: const TextStyle(color: Colors.grey, fontSize: 14),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            OutlinedButton(
-              onPressed: onMessage,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF6750A4),
-                side: const BorderSide(color: Color(0xFF6750A4)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-              ),
-              child: const Text('Message'),
-            ),
-            const SizedBox(width: 4),
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Colors.grey),
-              onSelected: (value) {
-                if (value == 'remove') {
-                  onRemove();
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'remove',
-                  child: Row(
-                    children: [
-                      Icon(Icons.person_remove, color: Colors.red, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'Remove friend',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ],
+            ],
+          ),
+          title: Text(
+            '${widget.friend.firstname ?? ''} ${widget.friend.lastname ?? ''}'
+                .trim(),
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+          ),
+          subtitle: Text(
+            '@${widget.friend.username ?? 'user'}',
+            style: const TextStyle(color: Colors.grey, fontSize: 14),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _AnimatedOutlinedButton(text: 'Message', onTap: widget.onMessage),
+              const SizedBox(width: 4),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Colors.grey),
+                onSelected: (value) {
+                  if (value == 'remove') {
+                    widget.onRemove();
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'remove',
+                    child: Row(
+                      children: [
+                        Icon(Icons.person_remove, color: Colors.red, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Remove friend',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// Friend Request Item Widget
-class _FriendRequestItem extends StatelessWidget {
+/// Animated outlined button with tap feedback
+class _AnimatedOutlinedButton extends StatefulWidget {
+  final String text;
+  final VoidCallback onTap;
+
+  const _AnimatedOutlinedButton({required this.text, required this.onTap});
+
+  @override
+  State<_AnimatedOutlinedButton> createState() =>
+      _AnimatedOutlinedButtonState();
+}
+
+class _AnimatedOutlinedButtonState extends State<_AnimatedOutlinedButton> {
+  double _scale = 1.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _scale = 0.9),
+      onTapUp: (_) {
+        setState(() => _scale = 1.0);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _scale = 1.0),
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFF6750A4)),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            widget.text,
+            style: const TextStyle(
+              color: Color(0xFF6750A4),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Friend Request Item Widget with animation
+class _FriendRequestItem extends StatefulWidget {
   final String requestId;
   final String senderName;
   final String senderUsername;
@@ -643,88 +687,139 @@ class _FriendRequestItem extends StatelessWidget {
     required this.onDecline,
   });
 
+  @override
+  State<_FriendRequestItem> createState() => _FriendRequestItemState();
+}
+
+class _FriendRequestItemState extends State<_FriendRequestItem> {
+  double _acceptScale = 1.0;
+  double _declineScale = 1.0;
+  bool _isVisible = true;
+
   String _getInitials() {
-    final parts = senderName.split(' ');
+    final parts = widget.senderName.split(' ');
     if (parts.length >= 2) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    } else if (senderName.isNotEmpty) {
-      return senderName[0].toUpperCase();
+    } else if (widget.senderName.isNotEmpty) {
+      return widget.senderName[0].toUpperCase();
     }
     return '?';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: const Color(0xFFE8DEF8),
-            backgroundImage: senderProfilePic != null
-                ? NetworkImage(senderProfilePic!)
-                : null,
-            child: senderProfilePic == null
-                ? Text(
-                    _getInitials(),
-                    style: const TextStyle(
-                      color: Color(0xFF6750A4),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  )
-                : null,
+    return AnimatedOpacity(
+      opacity: _isVisible ? 1.0 : 0.0,
+      duration: const Duration(milliseconds: 200),
+      child: AnimatedSlide(
+        offset: _isVisible ? Offset.zero : const Offset(1, 0),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  senderName.isEmpty ? 'Unknown User' : senderName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
-                ),
-                if (senderUsername.isNotEmpty)
-                  Text(
-                    '@$senderUsername',
-                    style: const TextStyle(color: Colors.grey, fontSize: 14),
-                  ),
-              ],
-            ),
-          ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
             children: [
-              IconButton(
-                onPressed: onDecline,
-                icon: const Icon(Icons.close),
-                color: Colors.red,
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.red.shade50,
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: const Color(0xFFE8DEF8),
+                backgroundImage: widget.senderProfilePic != null
+                    ? NetworkImage(widget.senderProfilePic!)
+                    : null,
+                child: widget.senderProfilePic == null
+                    ? Text(
+                        _getInitials(),
+                        style: const TextStyle(
+                          color: Color(0xFF6750A4),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.senderName.isEmpty
+                          ? 'Unknown User'
+                          : widget.senderName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                    if (widget.senderUsername.isNotEmpty)
+                      Text(
+                        '@${widget.senderUsername}',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: onAccept,
-                icon: const Icon(Icons.check),
-                color: Colors.green,
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.green.shade50,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Decline button
+                  GestureDetector(
+                    onTapDown: (_) => setState(() => _declineScale = 0.85),
+                    onTapUp: (_) {
+                      setState(() => _declineScale = 1.0);
+                      widget.onDecline();
+                    },
+                    onTapCancel: () => setState(() => _declineScale = 1.0),
+                    child: AnimatedScale(
+                      scale: _declineScale,
+                      duration: const Duration(milliseconds: 100),
+                      curve: Curves.easeInOut,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close, color: Colors.red),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Accept button
+                  GestureDetector(
+                    onTapDown: (_) => setState(() => _acceptScale = 0.85),
+                    onTapUp: (_) {
+                      setState(() => _acceptScale = 1.0);
+                      widget.onAccept();
+                    },
+                    onTapCancel: () => setState(() => _acceptScale = 1.0),
+                    child: AnimatedScale(
+                      scale: _acceptScale,
+                      duration: const Duration(milliseconds: 100),
+                      curve: Curves.easeInOut,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.check, color: Colors.green),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

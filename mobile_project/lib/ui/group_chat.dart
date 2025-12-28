@@ -616,25 +616,12 @@ class _GroupMessageBubble extends StatelessWidget {
                             ),
                           ),
                         const SizedBox(height: 4),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              time,
-                              style: TextStyle(
-                                color: isMe ? Colors.white70 : Colors.grey,
-                                fontSize: 11,
-                              ),
-                            ),
-                            if (isMe) ...[
-                              const SizedBox(width: 4),
-                              const Icon(
-                                Icons.done_all,
-                                size: 14,
-                                color: Colors.white70,
-                              ),
-                            ],
-                          ],
+                        Text(
+                          time,
+                          style: TextStyle(
+                            color: isMe ? Colors.white70 : Colors.grey,
+                            fontSize: 11,
+                          ),
                         ),
                       ],
                     ),
