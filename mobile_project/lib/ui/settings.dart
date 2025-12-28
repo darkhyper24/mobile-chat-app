@@ -13,7 +13,6 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool _isDarkTheme = false;
-  bool _notificationsEnabled = true;
   String _appVersion = '';
 
   @override
@@ -73,72 +72,6 @@ class _SettingsPageState extends State<SettingsPage> {
                                 _isDarkTheme
                                     ? 'Dark theme enabled'
                                     : 'Light theme enabled',
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Close',
-                    style: TextStyle(color: Color(0xFF6750A4)),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showNotificationsDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: const Text(
-                'Notifications',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Enable Notifications',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      Switch(
-                        value: _notificationsEnabled,
-                        activeThumbColor: const Color(0xFF6750A4),
-                        onChanged: (value) {
-                          setDialogState(() {
-                            _notificationsEnabled = value;
-                          });
-                          setState(() {
-                            _notificationsEnabled = value;
-                          });
-                          // TODO: Implement notification settings logic
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                _notificationsEnabled
-                                    ? 'Notifications enabled'
-                                    : 'Notifications disabled',
                               ),
                             ),
                           );
@@ -320,14 +253,21 @@ class _SettingsPageState extends State<SettingsPage> {
                   CircleAvatar(
                     backgroundColor: const Color(0xFFE8DEF8),
                     radius: 50,
-                    child: Text(
-                      user?.firstname?.substring(0, 1).toUpperCase() ?? 'U',
-                      style: const TextStyle(
-                        color: Color(0xFF6750A4),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 36,
-                      ),
-                    ),
+                    backgroundImage:
+                        user?.profilePic != null && user!.profilePic!.isNotEmpty
+                        ? NetworkImage(user.profilePic!)
+                        : null,
+                    child: user?.profilePic == null || user!.profilePic!.isEmpty
+                        ? Text(
+                            user?.firstname?.substring(0, 1).toUpperCase() ??
+                                'U',
+                            style: const TextStyle(
+                              color: Color(0xFF6750A4),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 36,
+                            ),
+                          )
+                        : null,
                   ),
                   const SizedBox(height: 16),
 
@@ -375,13 +315,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     title: 'Appearance',
                     subtitle: 'Customize app theme',
                     onTap: _showAppearanceDialog,
-                  ),
-                  _buildDivider(),
-                  _buildSettingsItem(
-                    icon: Icons.notifications_outlined,
-                    title: 'Notifications',
-                    subtitle: 'Manage notifications',
-                    onTap: _showNotificationsDialog,
                   ),
                   _buildDivider(),
                   _buildSettingsItem(

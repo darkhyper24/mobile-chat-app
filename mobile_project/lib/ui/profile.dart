@@ -16,11 +16,13 @@ class _ProfilePageState extends State<ProfilePage> {
   final _firstnameController = TextEditingController();
   final _lastnameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _bioController = TextEditingController();
 
   bool _isLoading = false;
   bool _isEditingFirstname = false;
   bool _isEditingLastname = false;
   bool _isEditingPhone = false;
+  bool _isEditingBio = false;
   int _selectedIndex = 3;
 
   @override
@@ -35,6 +37,7 @@ class _ProfilePageState extends State<ProfilePage> {
       _firstnameController.text = user.firstname ?? '';
       _lastnameController.text = user.lastname ?? '';
       _phoneController.text = user.phoneNumber ?? '';
+      _bioController.text = user.bio ?? '';
     }
   }
 
@@ -43,6 +46,7 @@ class _ProfilePageState extends State<ProfilePage> {
     _firstnameController.dispose();
     _lastnameController.dispose();
     _phoneController.dispose();
+    _bioController.dispose();
     super.dispose();
   }
 
@@ -72,6 +76,12 @@ class _ProfilePageState extends State<ProfilePage> {
           result = await _userService.updateProfile(
             userId: userId,
             phoneNumber: value,
+          );
+          break;
+        case 'bio':
+          result = await _userService.updateProfile(
+            userId: userId,
+            bio: value,
           );
           break;
       }
@@ -105,6 +115,7 @@ class _ProfilePageState extends State<ProfilePage> {
           _isEditingFirstname = false;
           _isEditingLastname = false;
           _isEditingPhone = false;
+          _isEditingBio = false;
         });
       }
     }
@@ -301,11 +312,19 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       const SizedBox(height: 16),
 
-                      // About/Bio Field (Read-only for now)
-                      _buildReadOnlyField(
+                      // About/Bio Field
+                      _buildProfileField(
                         icon: Icons.info_outline,
                         label: 'About',
-                        value: user.bio ?? 'Hey there! I am using ChatApp',
+                        controller: _bioController,
+                        isEditing: _isEditingBio,
+                        onEditPressed: () {
+                          setState(() => _isEditingBio = true);
+                        },
+                        onSavePressed: () {
+                          _updateField('bio', _bioController.text);
+                        },
+                        placeholder: "Hey there! I'm using ZC Chat App",
                       ),
                       const SizedBox(height: 16),
 
@@ -405,6 +424,7 @@ class _ProfilePageState extends State<ProfilePage> {
     required VoidCallback onEditPressed,
     required VoidCallback onSavePressed,
     TextInputType? keyboardType,
+    String placeholder = 'Not set',
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -442,7 +462,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                       )
                     : Text(
-                        controller.text.isEmpty ? 'Not set' : controller.text,
+                        controller.text.isEmpty ? placeholder : controller.text,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,

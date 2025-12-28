@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import '../models/users.dart';
 import '../models/messages.dart';
+import 'user_profile.dart';
 
 class ChatPage extends StatefulWidget {
   final User partner;
@@ -255,24 +256,10 @@ class _ChatPageState extends State<ChatPage> {
                         title: const Text('View Profile'),
                         onTap: () {
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Profile view coming soon!'),
-                            ),
-                          );
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.block, color: Colors.red),
-                        title: const Text(
-                          'Block User',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                        onTap: () {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Block feature coming soon!'),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => UserProfilePage(user: widget.partner),
                             ),
                           );
                         },
